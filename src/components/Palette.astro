@@ -1,0 +1,209 @@
+---
+import { profile } from '../data/profile';
+import { caseStudies } from '../data/caseStudies';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+
+type Cmd = { label: string; group: string; hint?: string; action: string; arg?: string };
+const sections: [string, string][] = [
+  ['top', 'Start'], ['about', 'About'], ['experience', 'Experience'], ['work', 'Selected work'],
+  ['projects', 'Projects'], ['toolkit', 'Toolkit'], ['contact', 'Contact'],
+];
+const commands: Cmd[] = [
+  ...sections.map(([id, label]) => ({ label, group: 'go to', action: 'goto', arg: id })),
+  ...caseStudies.map((c) => ({ label: `${c.title} architecture`, group: 'case study', action: 'case', arg: c.id })),
+  { label: 'Process a record', group: 'demo', action: 'sim', arg: 'good' },
+  { label: 'Try a broken record', group: 'demo', action: 'sim', arg: 'bad' },
+  { label: 'Copy email', group: 'contact', hint: profile.email, action: 'copy', arg: profile.email },
+  { label: 'Download resume', group: 'contact', hint: 'PDF', action: 'url', arg: `${base}${profile.resume}` },
+  { label: 'GitHub', group: 'contact', hint: '↗', action: 'url', arg: profile.links.github },
+  { label: 'LinkedIn', group: 'contact', hint: '↗', action: 'url', arg: profile.links.linkedin },
+  { label: 'Keyboard shortcuts', group: 'help', hint: '?', action: 'help' },
+];
+const shortcuts: [string, string][] = [
+  ['⌘ K  /  Ctrl K  /  /', 'command palette'],
+  ['?', 'this list'],
+  ['Esc', 'close any panel'],
+  ['▶ in a diagram', 'walk a record through it'],
+];
+---
+
+<dialog id="palette" class="cmdk" aria-label="Command palette">
+  <div class="card overflow-hidden border-line-2 bg-[#0c0e11] shadow-2xl">
+    <div class="flex items-center gap-2 border-b border-line px-3.5">
+      <span class="font-mono text-[12px] text-accent">›</span>
+      <input
+        id="palette-input"
+        type="text"
+        placeholder="Jump to a section, open a case study, copy email…"
+        autocomplete="off"
+        spellcheck="false"
+        class="h-11 w-full bg-transparent text-[13px] text-ink outline-none placeholder:text-faint"
+      />
+      <kbd class="font-mono text-[10px] text-faint">esc</kbd>
+    </div>
+    <ul id="palette-list" class="max-h-[360px] overflow-y-auto p-1.5" role="listbox">
+      {
+        commands.map((c, i) => (
+          <li
+            role="option"
+            class="cmd flex cursor-pointer items-center justify-between gap-3 rounded-md px-2.5 py-1.5"
+            data-action={c.action}
+            data-arg={c.arg}
+            data-text={`${c.group} ${c.label}`.toLowerCase()}
+            data-i={i}
+          >
+            <span class="text-[12.5px]">
+              <span class="mr-2 inline-block w-[74px] font-mono text-[10px] text-faint">{c.group}</span>
+              {c.label}
+            </span>
+            {c.hint && <span class="font-mono text-[10px] text-faint">{c.hint}</span>}
+          </li>
+        ))
+      }
+      <li id="palette-empty" class="hidden px-2.5 py-3 text-[12px] text-faint">No match.</li>
+    </ul>
+  </div>
+</dialog>
+
+<dialog id="shortcuts" class="cmdk" aria-label="Keyboard shortcuts">
+  <div class="card border-line-2 bg-[#0c0e11] p-4">
+    <p class="stage-label mb-3"><b>keys</b> / shortcuts</p>
+    <dl class="space-y-2">
+      {
+        shortcuts.map(([k, v]) => (
+          <div class="flex justify-between gap-6 text-[12.5px]">
+            <dt class="font-mono text-[11px] text-accent">{k}</dt>
+            <dd class="text-muted">{v}</dd>
+          </div>
+        ))
+      }
+    </dl>
+    <p class="mt-4 font-mono text-[10px] text-faint">psst: there's one hidden word. try typing what you'd like the diagrams to do.</p>
+  </div>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<style>
+  dialog.cmdk {
+    background: transparent;
+    padding: 0;
+    border: 0;
+    width: min(560px, 100vw - 24px);
+    margin: 14vh auto auto;
+    color: inherit;
+  }
+  dialog.cmdk::backdrop { background: rgb(4 5 6 / 0.6); backdrop-filter: blur(3px); }
+  dialog.cmdk[open] { animation: pop 0.16s ease; }
+  #palette-input:focus-visible { outline: none; }
+  .cmd[aria-selected='true'] { background: var(--color-surface-2); }
+  .cmd[aria-selected='true'] > span:first-child { color: var(--color-accent); }
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    z-index: 90;
+    transform: translate(-50%, 12px);
+    opacity: 0;
+    pointer-events: none;
+    background: #15181c;
+    border: 1px solid var(--color-line-2);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-ink);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  #toast.on { opacity: 1; transform: translate(-50%, 0); }
+</style>
+
+<script>
+  const palette = document.getElementById('palette') as HTMLDialogElement;
+  const help = document.getElementById('shortcuts') as HTMLDialogElement;
+  const input = document.getElementById('palette-input') as HTMLInputElement;
+  const items = [...document.querySelectorAll<HTMLLIElement>('#palette-list .cmd')];
+  const empty = document.getElementById('palette-empty')!;
+  const toastEl = document.getElementById('toast')!;
+  let sel = 0;
+
+  const toast = (msg: string) => {
+    toastEl.textContent = msg;
+    toastEl.classList.add('on');
+    clearTimeout((toast as any).t);
+    (toast as any).t = setTimeout(() => toastEl.classList.remove('on'), 2200);
+  };
+  (window as any).toast = toast;
+
+  const visible = () => items.filter((i) => !i.hidden);
+  const select = (n: number) => {
+    const v = visible();
+    if (!v.length) return;
+    sel = (n + v.length) % v.length;
+    items.forEach((i) => i.setAttribute('aria-selected', 'false'));
+    v[sel].setAttribute('aria-selected', 'true');
+    v[sel].scrollIntoView({ block: 'nearest' });
+  };
+  const filter = () => {
+    const q = input.value.trim().toLowerCase();
+    items.forEach((i) => (i.hidden = !!q && !q.split(/\s+/).every((w) => i.dataset.text!.includes(w))));
+    empty.classList.toggle('hidden', visible().length > 0);
+    select(0);
+  };
+  const openPalette = () => {
+    if (palette.open) return;
+    document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => d.close());
+    input.value = '';
+    filter();
+    palette.showModal();
+    input.focus();
+  };
+
+  const runCmd = (el: HTMLElement) => {
+    const { action, arg } = el.dataset;
+    palette.close();
+    if (action === 'goto') document.getElementById(arg!)?.scrollIntoView({ behavior: 'smooth' });
+    if (action === 'case') document.querySelector<HTMLButtonElement>(`[data-open="${arg}"]`)?.click();
+    if (action === 'sim') {
+      document.getElementById('sim')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      (window as any).runSimulator?.(arg);
+    }
+    if (action === 'copy') navigator.clipboard?.writeText(arg!).then(() => toast('email copied ✓'));
+    if (action === 'url') window.open(arg, '_blank', 'noopener');
+    if (action === 'help') help.showModal();
+  };
+
+  input.addEventListener('input', filter);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); select(sel + 1); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); select(sel - 1); }
+    if (e.key === 'Enter') { const v = visible()[sel]; if (v) runCmd(v); }
+  });
+  items.forEach((i) => {
+    i.addEventListener('click', () => runCmd(i));
+    i.addEventListener('mousemove', () => select(visible().indexOf(i)));
+  });
+  [palette, help].forEach((d) => d.addEventListener('click', (e) => e.target === d && d.close()));
+  document.querySelectorAll('.palette-open').forEach((b) => b.addEventListener('click', openPalette));
+
+  // Global keys + hidden word
+  const secret = 'explain';
+  let buffer = '';
+  document.addEventListener('keydown', (e) => {
+    const typing = (e.target as HTMLElement)?.closest?.('input, textarea, [contenteditable]');
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palette.open ? palette.close() : openPalette(); return; }
+    if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === '/') { e.preventDefault(); openPalette(); return; }
+    if (e.key === '?') { e.preventDefault(); help.open ? help.close() : help.showModal(); return; }
+    if (e.key.length === 1) {
+      buffer = (buffer + e.key.toLowerCase()).slice(-secret.length);
+      if (buffer === secret) {
+        buffer = '';
+        const on = !(window as any).explainMode;
+        (window as any).explainMode = on;
+        document.documentElement.classList.toggle('explain', on);
+        toast(on ? 'explain mode on · diagrams play themselves' : 'explain mode off');
+      }
+    }
+  });
+</script>

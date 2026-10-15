@@ -1,5 +1,6 @@
 ---
 import { profile } from '../data/profile';
+import Simulator from './Simulator.astro';
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 ---
 
@@ -28,26 +29,10 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 
   <p class="mt-7 max-w-[560px] text-[15px] leading-relaxed text-ink/90">{profile.tagline}</p>
 
-  <!-- signature: a record flowing down a tiny pipeline -->
-  <div class="mt-7 max-w-[560px]" aria-hidden="true">
-    <svg viewBox="0 0 560 24" class="w-full overflow-visible">
-      <path id="hero-line" d="M2 12 H558" stroke="var(--color-line-2)" stroke-width="1" />
-      <path d="M2 12 H558" stroke="var(--color-accent)" stroke-width="1.4" class="flow" opacity="0.55" />
-      {
-        ['ingest', 'validate', 'map', 'match', 'transform', 'deliver'].map((s, i) => (
-          <g transform={`translate(${2 + i * 111.2} 12)`}>
-            <circle r="3.5" fill="var(--color-bg)" stroke="var(--color-line-2)" />
-            <text y="-9" text-anchor={i === 0 ? 'start' : i === 5 ? 'end' : 'middle'} class="fill-faint font-mono" font-size="9.5">
-              {s}
-            </text>
-          </g>
-        ))
-      }
-      <circle r="3" fill="var(--color-accent)" class="motion-dot" style="filter: drop-shadow(0 0 4px var(--color-accent))">
-        <animateMotion dur="4.5s" repeatCount="indefinite" path="M2 12 H558" />
-      </circle>
-    </svg>
-  </div>
+  <p class="mt-3 flex items-start gap-2 font-mono text-[11px] text-muted">
+    <span class="now-dot mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent"></span>
+    <span><span class="text-ink">now</span> · {profile.now} <span class="text-faint">· updated {profile.updated}</span></span>
+  </p>
 
   <div class="mt-8 flex flex-wrap gap-2">
     <a class="btn btn-primary" href={`${base}${profile.resume}`} download>
@@ -56,10 +41,22 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
     <a class="btn" href={profile.links.github} target="_blank" rel="noopener">GitHub ↗</a>
     <a class="btn" href={profile.links.linkedin} target="_blank" rel="noopener">LinkedIn ↗</a>
     <a class="btn" href={`mailto:${profile.email}`}>Email</a>
+    <button type="button" class="btn palette-open ml-auto hidden sm:inline-flex" aria-label="Open command palette">
+      <kbd class="font-mono text-[10.5px] text-faint">⌘K</kbd>
+    </button>
   </div>
+
+  <Simulator />
 </section>
 
 <style>
+  .now-dot {
+    box-shadow: 0 0 0 3px var(--color-accent-dim);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    50% { box-shadow: 0 0 0 6px transparent; }
+  }
   .avatar {
     box-shadow:
       0 0 0 1px var(--color-line-2),

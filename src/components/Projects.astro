@@ -1,5 +1,6 @@
 ---
 import SectionHead from './SectionHead.astro';
+import ProjectCover from './ProjectCover.astro';
 import { projects } from '../data/projects';
 ---
 
@@ -8,7 +9,11 @@ import { projects } from '../data/projects';
   <div class="grid gap-3 sm:grid-cols-2">
     {
       projects.map((p) => (
-        <article class="reveal card flex flex-col p-4">
+        <article class="project reveal card flex flex-col overflow-hidden transition-colors hover:border-line-2">
+          <div class="h-[110px] border-b border-line bg-bg">
+            <ProjectCover motif={p.motif} />
+          </div>
+          <div class="flex flex-1 flex-col p-4">
           <div class="flex items-baseline justify-between gap-3">
             <h3 class="text-[14px] font-medium">{p.name}</h3>
             <p class="font-mono text-[10px] text-faint">{p.context}</p>
@@ -24,6 +29,7 @@ import { projects } from '../data/projects';
                 <a href={p.demo} target="_blank" rel="noopener" class="text-muted hover:text-accent">live ↗</a>
               )}
             </div>
+          </div>
           </div>
         </article>
       ))

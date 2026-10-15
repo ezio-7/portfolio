@@ -1,0 +1,43 @@
+---
+import { stats } from '../data/profile';
+---
+
+<div class="stats reveal mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-5">
+  {
+    stats.map((s) => (
+      <div class="bg-surface px-4 py-3.5">
+        <p class="text-[20px] leading-none font-medium tracking-tight text-accent">
+          {s.prefix}
+          <span class="count" data-to={s.value}>
+            {s.value.toLocaleString('en-US')}
+          </span>
+          {s.suffix}
+        </p>
+        <p class="mt-1.5 font-mono text-[10px] leading-snug text-faint">{s.label}</p>
+      </div>
+    ))
+  }
+</div>
+
+<script>
+  // Count up once when the strip scrolls into view (skipped for reduced motion)
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const els = [...document.querySelectorAll<HTMLElement>('.stats .count')];
+  if (!reduce && els.length) {
+    els.forEach((el) => (el.textContent = '0'));
+    const io = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      io.disconnect();
+      const t0 = performance.now(), dur = 1400;
+      const tick = (t: number) => {
+        const p = Math.min((t - t0) / dur, 1), ease = 1 - Math.pow(1 - p, 3);
+        els.forEach((el) => {
+          el.textContent = Math.round(Number(el.dataset.to) * ease).toLocaleString('en-US');
+        });
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, { threshold: 0.4 });
+    io.observe(els[0].closest('.stats')!);
+  }
+</script>

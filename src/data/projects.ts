@@ -5,11 +5,13 @@ export type Project = {
   stack: string[];
   repo: string;
   demo?: string;
+  motif: 'proctor' | 'queue' | 'bug' | 'feed' | 'bet' | 'camp' | 'pin' | 'game';
 };
 
 export const projects: Project[] = [
   {
     name: 'Proctoring App',
+    motif: 'proctor',
     context: 'Internship · Resurgent PMC',
     description:
       'Online exam proctoring with live video monitoring and in-browser cheating detection (phone use, multiple faces, tab switching).',
@@ -18,6 +20,7 @@ export const projects: Project[] = [
   },
   {
     name: 'Queue Service',
+    motif: 'queue',
     context: 'Internship · Vayuvoy',
     description:
       'Message queue service with dynamically created queues, priority delivery and acknowledged consumers.',
@@ -26,6 +29,7 @@ export const projects: Project[] = [
   },
   {
     name: 'Code Guardian',
+    motif: 'bug',
     context: 'Self project',
     description:
       'Runs Python, JavaScript or Java snippets and, on failure, asks an LLM to explain the bug and return fixed code, with a chat view for follow-ups.',
@@ -34,6 +38,7 @@ export const projects: Project[] = [
   },
   {
     name: 'Twitter Clone',
+    motif: 'feed',
     context: 'Self project',
     description: 'Social feed with posts, follows, profiles, image uploads and credential auth.',
     stack: ['Next.js', 'TypeScript', 'Prisma', 'NextAuth'],
@@ -41,6 +46,7 @@ export const projects: Project[] = [
   },
   {
     name: 'Betting Site',
+    motif: 'bet',
     context: 'Self project',
     description:
       'Real-time betting platform with wallets, transaction history and an admin panel for managing users.',
@@ -49,6 +55,7 @@ export const projects: Project[] = [
   },
   {
     name: 'Yelp Camp',
+    motif: 'camp',
     context: 'Self project',
     description: 'Campground review site with authentication, authorization and full CRUD for campgrounds and reviews.',
     stack: ['Node.js', 'Express', 'MongoDB'],
@@ -56,6 +63,7 @@ export const projects: Project[] = [
   },
   {
     name: 'User Location Extension',
+    motif: 'pin',
     context: 'Self project',
     description: "Chrome extension that shows the user's city and country from their IP address.",
     stack: ['TypeScript', 'React', 'Plasmo'],
@@ -63,6 +71,7 @@ export const projects: Project[] = [
   },
   {
     name: 'Dribbling Block',
+    motif: 'game',
     context: 'Self project',
     description: 'Small browser game with sound, win and game-over states, written in plain JavaScript.',
     stack: ['JavaScript', 'HTML', 'CSS'],

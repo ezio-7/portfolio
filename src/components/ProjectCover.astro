@@ -1,0 +1,140 @@
+---
+// Drawn cover per project, in the site's own style (no stock images)
+interface Props {
+  motif: 'proctor' | 'queue' | 'bug' | 'feed' | 'bet' | 'camp' | 'pin' | 'game';
+}
+const { motif } = Astro.props;
+const A = 'var(--color-accent)', L = 'var(--color-line-2)', F = 'var(--color-faint)', S = 'var(--color-surface-2)';
+---
+
+<svg viewBox="0 0 320 140" class="cover block h-full w-full" aria-hidden="true">
+  <defs>
+    <pattern id={`g-${motif}`} width="16" height="16" patternUnits="userSpaceOnUse">
+      <path d="M16 0H0V16" fill="none" stroke="var(--color-line)" stroke-width="0.6" />
+    </pattern>
+  </defs>
+  <rect width="320" height="140" fill={`url(#g-${motif})`} />
+
+  {motif === 'proctor' && (
+    <g>
+      <rect x="95" y="22" width="130" height="92" rx="10" fill={S} stroke={L} />
+      <ellipse cx="160" cy="62" rx="17" ry="21" fill="none" stroke={F} />
+      <path d="M135 104c6-14 44-14 50 0" fill="none" stroke={F} />
+      <g class="mv" stroke={A} stroke-width="2" fill="none">
+        <path d="M136 36h-6v8M184 36h6v8M136 90h-6v-8M184 90h6v-8" />
+      </g>
+      <circle cx="210" cy="34" r="3.5" fill="var(--color-warn)" class="blink" />
+      <text x="104" y="35" fill={F} font-size="8" font-family="monospace">REC</text>
+    </g>
+  )}
+
+  {motif === 'queue' && (
+    <g>
+      {[0, 1, 2].map((r) => (
+        <g transform={`translate(0 ${32 + r * 28})`}>
+          <path d="M40 10H230" stroke={L} />
+          <text x="22" y="13" fill={F} font-size="8" font-family="monospace">P{r + 1}</text>
+          <g class="mv">
+            {Array.from({ length: 4 - r }, (_, i) => (
+              <rect x={70 + i * 34 + r * 12} y="2" width="24" height="16" rx="4" fill={r === 0 ? A : S} stroke={r === 0 ? 'none' : L} opacity={r === 0 ? 0.9 : 1} />
+            ))}
+          </g>
+          <path d="M232 10l8 0" stroke={A} />
+        </g>
+      ))}
+      <rect x="244" y="30" width="54" height="76" rx="8" fill={S} stroke={A} />
+      <text x="252" y="72" fill={A} font-size="8.5" font-family="monospace">consume</text>
+    </g>
+  )}
+
+  {motif === 'bug' && (
+    <g>
+      <rect x="70" y="20" width="180" height="100" rx="8" fill={S} stroke={L} />
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <rect x={86 + (i % 3) * 10} y={34 + i * 13} width={[90, 60, 110, 70, 100, 50][i]} height="5" rx="2.5"
+          fill={i === 2 ? 'var(--color-warn)' : i === 3 ? A : L} opacity={i === 2 ? 0.8 : 1} />
+      ))}
+      <text x="78" y="64" fill="var(--color-warn)" font-size="9" font-family="monospace">-</text>
+      <text x="78" y="77" fill={A} font-size="9" font-family="monospace">+</text>
+      <g class="mv"><circle cx="232" cy="34" r="9" fill="none" stroke={A} /><path d="M228 34l3 3 5-6" fill="none" stroke={A} stroke-width="1.6" /></g>
+    </g>
+  )}
+
+  {motif === 'feed' && (
+    <g>
+      {[0, 1, 2].map((i) => (
+        <g class={i === 0 ? 'mv' : ''} transform={`translate(${84 + i * 8} ${18 + i * 34})`}>
+          <rect width="152" height="28" rx="7" fill={S} stroke={i === 0 ? A : L} />
+          <circle cx="15" cy="14" r="7" fill={i === 0 ? A : L} />
+          <rect x="28" y="8" width={70 - i * 10} height="4" rx="2" fill={F} />
+          <rect x="28" y="16" width={100 - i * 18} height="4" rx="2" fill={L} />
+        </g>
+      ))}
+    </g>
+  )}
+
+  {motif === 'bet' && (
+    <g>
+      <rect x="60" y="22" width="200" height="96" rx="8" fill={S} stroke={L} />
+      <path class="mv" d="M76 100 L110 82 L140 90 L172 60 L204 68 L244 38" fill="none" stroke={A} stroke-width="2" />
+      {['2.10', '1.85', '3.40'].map((o, i) => (
+        <g transform={`translate(${76 + i * 58} 30)`}>
+          <rect width="46" height="18" rx="4" fill="var(--color-bg)" stroke={i === 1 ? A : L} />
+          <text x="23" y="12.5" text-anchor="middle" fill={i === 1 ? A : F} font-size="9" font-family="monospace">{o}</text>
+        </g>
+      ))}
+    </g>
+  )}
+
+  {motif === 'camp' && (
+    <g>
+      <path d="M40 112 L110 46 L150 80 L196 30 L280 112Z" fill={S} stroke={L} />
+      <path d="M196 30 L210 44 L200 42 L190 48Z" fill={F} />
+      <g class="mv">
+        <path d="M128 112 L152 80 L176 112Z" fill="none" stroke={A} stroke-width="1.6" />
+        <path d="M152 80 L152 112" stroke={A} stroke-width="1" />
+      </g>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <path d={`M${60 + i * 50} 124 l3 -8 l3 8`} fill="none" stroke={F} />
+      ))}
+    </g>
+  )}
+
+  {motif === 'pin' && (
+    <g>
+      <path d="M60 40 L130 28 L190 40 L260 28 L260 112 L190 124 L130 112 L60 124Z" fill={S} stroke={L} />
+      <path d="M130 28V112M190 40V124" stroke={L} />
+      <path d="M70 92 C110 70, 150 100, 250 62" fill="none" stroke={F} stroke-dasharray="3 4" />
+      <g class="mv">
+        <path d="M160 82c-12-14-16-20-16-28a16 16 0 0 1 32 0c0 8-4 14-16 28z" fill={A} />
+        <circle cx="160" cy="54" r="5.5" fill="var(--color-bg)" />
+      </g>
+    </g>
+  )}
+
+  {motif === 'game' && (
+    <g>
+      <path d="M30 112H290" stroke={L} />
+      <path d="M60 112 Q110 20 160 112 Q200 50 240 112" fill="none" stroke={F} stroke-dasharray="3 4" />
+      <rect class="mv" x="148" y="94" width="18" height="18" rx="3" fill={A} />
+      {[0, 1, 2].map((i) => (
+        <rect x={200 + i * 26} y={96 - i * 10} width="14" height={16 + i * 10} rx="2" fill={S} stroke={L} />
+      ))}
+    </g>
+  )}
+</svg>
+
+<style>
+  .cover .mv {
+    transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  :global(.project:hover) .cover .mv {
+    transform: translate(6px, -3px);
+  }
+  .blink {
+    animation: blink 1.4s steps(2) infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0.2; }
+  }
+</style>

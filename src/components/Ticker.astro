@@ -1,0 +1,17 @@
+---
+// "Saved since you opened this page", from ~$94K/year
+---
+
+<span class="ticker font-mono text-[10.5px] text-faint">
+  ≈ <span class="ticker-val text-accent">$0.000</span> saved since you opened this page
+</span>
+
+<script>
+  const perSec = 94000 / (365 * 24 * 3600);
+  const t0 = performance.now();
+  const els = document.querySelectorAll<HTMLElement>('.ticker-val');
+  setInterval(() => {
+    const v = `$${(((performance.now() - t0) / 1000) * perSec).toFixed(3)}`;
+    els.forEach((e) => (e.textContent = v));
+  }, 100);
+</script>

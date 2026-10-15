@@ -29,6 +29,8 @@ export type Diagram = {
   groups?: DiagramGroup[];
 };
 
+export type PlayStep = { node: string; text: string };
+
 export type CaseStudy = {
   id: string;
   title: string;
@@ -38,6 +40,7 @@ export type CaseStudy = {
   results: { value: string; label: string }[];
   stack: string[];
   diagram: Diagram;
+  steps: PlayStep[]; // ▶ walk-through, in order
 };
 
 export const caseStudies: CaseStudy[] = [
@@ -59,6 +62,18 @@ export const caseStudies: CaseStudy[] = [
       { value: 'Idempotent', label: 'crash-resumable runs' },
     ],
     stack: ['Python', 'MySQL', 'SQLAlchemy', 'Azure Blob'],
+    steps: [
+      { node: 'dq', text: "A record fails a critical rule: its lab code is missing." },
+      { node: 'indexer', text: "The failure is indexed with member, source, state and date of service." },
+      { node: 'index', text: "It waits in the state-partitioned fallout index as 'open'." },
+      { node: 'output', text: "Days later, the same provider sends a new file. It streams in chunks." },
+      { node: 'lookup', text: "Only members in this chunk are looked up, one partition at a time." },
+      { node: 'rules', text: "The engine re-checks the failed rule on the newer record. The lab code is there now." },
+      { node: 'commit', text: "Every fix in the chunk commits in one short transaction." },
+      { node: 'index', text: "The original failure is marked remediated." },
+      { node: 'archive', text: "After the retention window, the load is archived to blob storage and purged." },
+      { node: 'report', text: "Business users see what got fixed in the remediation report." },
+    ],
     diagram: {
       width: 960,
       height: 430,
@@ -113,6 +128,18 @@ export const caseStudies: CaseStudy[] = [
       { value: '43M+', label: 'records indexed' },
     ],
     stack: ['Python', 'Java', 'MySQL', 'PostgreSQL', 'Azure AI Search'],
+    steps: [
+      { node: 'extract', text: "A health plan sends its member extract." },
+      { node: 'indexjob', text: "Indexing picks it up automatically and loads it state by state, in parallel." },
+      { node: 'memberidx', text: "Members land in state-partitioned SQL tables. Azure AI Search is no longer needed." },
+      { node: 'records', text: "A clinical record arrives carrying member ID 00012345." },
+      { node: 'id', text: "ID types are tried in priority order; the first unique hit wins." },
+      { node: 'state', text: "Candidates are restricted to the states the plan covers." },
+      { node: 'matched', text: "One unique member: the ID and how it matched are written to the record." },
+      { node: 'pad', text: "If IDs miss, zero-padded and trimmed variants are tried…" },
+      { node: 'demo', text: "…then name plus date of birth." },
+      { node: 'fallout', text: "No match at all: the record goes to its own member-match fallout report." },
+    ],
     diagram: {
       width: 960,
       height: 380,
@@ -166,6 +193,18 @@ export const caseStudies: CaseStudy[] = [
       { value: '20+', label: 'large files in parallel' },
     ],
     stack: ['Java', 'Spring Boot', 'ShedLock', 'MySQL', 'Kubernetes'],
+    steps: [
+      { node: 'big', text: "A 60 GB HIE file arrives." },
+      { node: 'split', text: "It is split into child chunk loads under one parent." },
+      { node: 'stage', text: "Each child gets a row in the stage table." },
+      { node: 'fetch', text: "A fetcher polls the table; ShedLock makes sure only one pod picks it up." },
+      { node: 'exec', text: "The executor locks the record and dispatches the stage job." },
+      { node: 'jobs', text: "Workers run the stage and write status back to the table." },
+      { node: 'rollup', text: "Child statuses roll up into the parent load." },
+      { node: 'heart', text: "If a job goes silent, the heartbeat monitor notices…" },
+      { node: 'heal', text: "…and self-healing retries, fails or releases it." },
+      { node: 'stage', text: "The load is back in the stage table, unblocked. No 72-hour wait." },
+    ],
     diagram: {
       width: 960,
       height: 400,
@@ -217,6 +256,18 @@ export const caseStudies: CaseStudy[] = [
       { value: '1', label: 'codebase' },
     ],
     stack: ['Python', 'Java', 'PostgreSQL', 'Liquibase', 'Azure', 'AWS'],
+    steps: [
+      { node: 'py', text: "Python code asks for a connection. It never touches a driver or cloud SDK directly." },
+      { node: 'db', text: "The DB handler hands out a pooled, thread-safe connection with retries." },
+      { node: 'auth', text: "Auth comes from config: password, Azure AD token or AWS IAM token, refreshed before expiry." },
+      { node: 'dbs', text: "The same queries run on MySQL or PostgreSQL." },
+      { node: 'storage', text: "Files go through one storage interface…" },
+      { node: 'blob', text: "…to Azure Blob or S3 in the cloud," },
+      { node: 'local', text: "…or local disk for development, with no cloud credentials." },
+      { node: 'java', text: "Java services use database-neutral JPA entities…" },
+      { node: 'jpa', text: "…and Liquibase migrations, so schemas move with the code." },
+      { node: 'dbs', text: "Either cloud, either database, one codebase." },
+    ],
     diagram: {
       width: 960,
       height: 360,

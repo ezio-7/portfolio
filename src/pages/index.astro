@@ -8,6 +8,9 @@ import CaseStudies from '../components/CaseStudies.astro';
 import Projects from '../components/Projects.astro';
 import Toolkit from '../components/Toolkit.astro';
 import Contact from '../components/Contact.astro';
+import Stats from '../components/Stats.astro';
+import Activity from '../components/Activity.astro';
+import Palette from '../components/Palette.astro';
 import { profile } from '../data/profile';
 ---
 
@@ -21,6 +24,8 @@ import { profile } from '../data/profile';
       <div class="reveal space-y-3 text-[13.5px] text-ink/85">
         {profile.about.map((p) => <p>{p}</p>)}
       </div>
+      <Stats />
+      <Activity />
     </section>
 
     <Experience />
@@ -29,4 +34,5 @@ import { profile } from '../data/profile';
     <Toolkit />
     <Contact />
   </main>
+  <Palette />
 </Layout>

@@ -1,0 +1,130 @@
+---
+import { platformStages } from '../data/experience';
+import { simulator } from '../data/simulator';
+---
+
+<div id="sim" class="mt-8 rounded-xl border border-line bg-surface/70 p-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <p class="stage-label"><b>demo</b> / one record through the pipeline</p>
+    <div class="flex gap-2">
+      <button type="button" class="btn btn-primary sim-run" data-kind="good">▶ process a record</button>
+      <button type="button" class="btn sim-run" data-kind="bad">try a broken one</button>
+    </div>
+  </div>
+
+  <ol class="sim-track mt-4 flex flex-wrap gap-1.5" aria-label="Pipeline stages">
+    {
+      platformStages.map((s, i) => (
+        <li class="sim-stage" data-i={i}>
+          <span class="font-mono text-[9px] opacity-60">{String(i + 1).padStart(2, '0')}</span> {s.name}
+        </li>
+      ))
+    }
+  </ol>
+
+  <div class="mt-3 grid gap-3 md:grid-cols-[1.25fr_1fr]">
+    <div class="min-h-[184px] rounded-lg border border-line bg-bg p-3">
+      <p class="mb-2 font-mono text-[9.5px] tracking-wide text-faint uppercase">record</p>
+      <pre id="sim-record" class="font-mono text-[11px] leading-[1.65] whitespace-pre-wrap text-muted">press ▶ to send a sample lab row through every stage</pre>
+    </div>
+    <div class="min-h-[184px] rounded-lg border border-line bg-bg p-3">
+      <p class="mb-2 font-mono text-[9.5px] tracking-wide text-faint uppercase">log</p>
+      <ol id="sim-log" class="space-y-1 font-mono text-[10.5px] leading-snug text-muted"></ol>
+    </div>
+  </div>
+  <p class="mt-2 font-mono text-[9.5px] text-faint">synthetic sample data · no real formats or records</p>
+</div>
+
+<script type="application/json" id="sim-data" set:html={JSON.stringify({ stages: platformStages.map((s) => s.name), ...simulator })} />
+
+<style>
+  .sim-stage {
+    font-size: 11px;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    padding: 2px 9px;
+    color: var(--color-faint);
+    transition: all 0.2s;
+  }
+  .sim-stage.done { color: var(--color-muted); border-color: rgb(196 240 77 / 0.35); }
+  .sim-stage.active {
+    color: #0b0c0e;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 12px rgb(196 240 77 / 0.35);
+  }
+  .sim-stage.fail { color: var(--color-warn); border-color: var(--color-warn); }
+  .sim-stage.fail.active { background: var(--color-warn); color: #0b0c0e; box-shadow: 0 0 12px rgb(255 138 92 / 0.35); }
+  .sim-stage.skip { opacity: 0.4; text-decoration: line-through; }
+  :global(#sim-record .k) { color: var(--color-faint); }
+  :global(#sim-record .v) { color: var(--color-ink); }
+  :global(#sim-record .new) { color: var(--color-accent); }
+  :global(#sim-record .bad) { color: var(--color-warn); }
+  :global(#sim-log li) { animation: logIn 0.25s ease; }
+  :global(#sim-log .s) { color: var(--color-faint); }
+  :global(#sim-log .f) { color: var(--color-warn); }
+  @keyframes logIn { from { opacity: 0; transform: translateX(-4px); } }
+</style>
+
+<script>
+  type Step = { log: string; raw?: string; fields?: Record<string, string>; status?: 'ok' | 'fail' | 'skip' };
+  const data = JSON.parse(document.getElementById('sim-data')!.textContent!) as {
+    stages: string[]; good: Step[]; bad: Step[];
+  };
+  const stages = [...document.querySelectorAll<HTMLElement>('.sim-stage')];
+  const recordEl = document.getElementById('sim-record')!;
+  const logEl = document.getElementById('sim-log')!;
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>('.sim-run')];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
+  let runId = 0;
+
+  const render = (fields: Record<string, string>, changed: Set<string>) =>
+    Object.entries(fields)
+      .map(([k, v]) => {
+        const cls = v === '' || v === '—' || v.includes('✕') || v.startsWith('failed') || v === 'none' ? 'bad' : changed.has(k) ? 'new' : 'v';
+        return `<span class="k">${esc(k.padEnd(13))}</span><span class="${cls}">${esc(v === '' ? '∅ missing' : v)}</span>`;
+      })
+      .join('\n');
+
+  async function run(kind: 'good' | 'bad') {
+    const id = ++runId;
+    const steps = data[kind];
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, reduce ? 60 : ms));
+    stages.forEach((s) => (s.className = 'sim-stage'));
+    logEl.innerHTML = '';
+    let fields: Record<string, string> = {};
+    for (let i = 0; i < steps.length; i++) {
+      if (id !== runId) return; // a newer run started
+      const st = steps[i];
+      stages.forEach((s, j) => s.classList.toggle('active', j === i));
+      if (st.status === 'fail') stages[i].classList.add('fail');
+      if (st.status === 'skip') stages[i].classList.add('skip');
+
+      let changed = new Set<string>();
+      if (st.raw) {
+        recordEl.innerHTML = `<span class="k">raw line\n</span><span class="v">${esc(st.raw)}</span>`;
+      } else if (st.fields) {
+        const renamed = Object.keys(st.fields).length >= 6; // mapping/normalising replaces the whole row
+        const next = renamed ? { ...st.fields } : { ...fields, ...st.fields };
+        changed = new Set(Object.keys(st.fields));
+        fields = next;
+        recordEl.innerHTML = render(fields, changed);
+      } else if (Object.keys(fields).length) {
+        recordEl.innerHTML = render(fields, changed);
+      }
+
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="s">[${esc(data.stages[i].toLowerCase())}]</span> <span class="${st.status === 'fail' ? 'f' : ''}">${esc(st.log)}</span>`;
+      logEl.appendChild(li);
+
+      await wait(i === 0 ? 900 : 760);
+      stages[i].classList.remove('active');
+      if (!st.status) stages[i].classList.add('done');
+    }
+  }
+
+  buttons.forEach((b) => b.addEventListener('click', () => run(b.dataset.kind as 'good' | 'bad')));
+  // expose for the command palette
+  (window as any).runSimulator = run;
+</script>

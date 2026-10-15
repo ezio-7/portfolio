@@ -64,7 +64,7 @@ const paths = edges.map((e) => {
 const mk = `arrow-${id}`, mkMuted = `arrow-m-${id}`;
 ---
 
-<svg viewBox={`0 0 ${width} ${height}`} class="diagram block w-full" role="img" aria-label="Architecture diagram">
+<svg viewBox={`0 0 ${width} ${height}`} class="diagram block w-full" role="img" aria-label="Architecture diagram" data-diagram={id}>
   <defs>
     <marker id={mk} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0 0 L8 4 L0 8 z" fill="var(--color-accent)" />
@@ -87,8 +87,8 @@ const mk = `arrow-${id}`, mkMuted = `arrow-m-${id}`;
 
   {
     paths.map((p) => (
-      <g>
-        <path d={p.d} fill="none" stroke="var(--color-line-2)" stroke-width="1" />
+      <g class="dedge" data-from={p.from} data-to={p.to}>
+        <path d={p.d} fill="none" stroke="var(--color-line-2)" stroke-width="1" class="base" />
         <path
           d={p.d}
           fill="none"
@@ -115,7 +115,7 @@ const mk = `arrow-${id}`, mkMuted = `arrow-m-${id}`;
       const b = byId[n.id];
       const kind = n.kind ?? 'process';
       return (
-        <g class={`dnode k-${kind}`} data-tip={n.tip} tabindex="0">
+        <g class={`dnode k-${kind}`} data-id={n.id} data-tip={n.tip}>
           <rect x={b.l} y={b.t} width={b.w} height={b.h} rx="9" />
           {kind === 'store' && (
             <g transform={`translate(${b.r - 20} ${b.t + 9})`} class="db-icon">
@@ -135,6 +135,7 @@ const mk = `arrow-${id}`, mkMuted = `arrow-m-${id}`;
       );
     })
   }
+  <circle class="pulse" r="5" cx="-20" cy="-20" fill="var(--color-accent)" />
 </svg>
 
 <style>
@@ -174,4 +175,66 @@ const mk = `arrow-${id}`, mkMuted = `arrow-m-${id}`;
     stroke: var(--color-accent);
     fill: #141a0d;
   }
+  .dnode,
+  .dedge {
+    transition: opacity 0.2s;
+  }
+  /* hover tracing + playback: dim everything not lit */
+  .diagram.tracing .dnode:not(.lit),
+  .diagram.tracing .dedge:not(.lit),
+  .diagram.playing .dnode:not(.lit):not(.seen),
+  .diagram.playing .dedge:not(.lit) {
+    opacity: 0.18;
+  }
+  .diagram.playing .dnode.seen:not(.lit) {
+    opacity: 0.55;
+  }
+  .dnode.lit rect {
+    stroke: var(--color-accent);
+  }
+  .diagram.playing .dnode.lit rect {
+    fill: #18200c;
+    filter: drop-shadow(0 0 14px rgb(196 240 77 / 0.35));
+  }
+  .pulse {
+    filter: drop-shadow(0 0 6px var(--color-accent));
+    pointer-events: none;
+  }
 </style>
+
+<script>
+  // Hover a node → light it plus everything upstream and downstream
+  document.querySelectorAll<SVGSVGElement>('svg.diagram').forEach((svg) => {
+    const edges = [...svg.querySelectorAll<SVGGElement>('.dedge')];
+    const walk = (start: string, dir: 'from' | 'to') => {
+      const seen = new Set([start]), q = [start];
+      while (q.length) {
+        const cur = q.shift()!;
+        for (const e of edges) {
+          const [a, b] = dir === 'to' ? [e.dataset.from!, e.dataset.to!] : [e.dataset.to!, e.dataset.from!];
+          if (a === cur && !seen.has(b)) { seen.add(b); q.push(b); }
+        }
+      }
+      return seen;
+    };
+    svg.querySelectorAll<SVGGElement>('.dnode').forEach((n) => {
+      n.addEventListener('mouseenter', () => {
+        if (svg.classList.contains('playing')) return;
+        const id = n.dataset.id!;
+        const down = walk(id, 'to'), up = walk(id, 'from');
+        const lit = new Set([...down, ...up]);
+        svg.classList.add('tracing');
+        svg.querySelectorAll<SVGGElement>('.dnode').forEach((m) => m.classList.toggle('lit', lit.has(m.dataset.id!)));
+        edges.forEach((e) => {
+          const f = e.dataset.from!, t = e.dataset.to!;
+          e.classList.toggle('lit', (down.has(f) && down.has(t)) || (up.has(f) && up.has(t)));
+        });
+      });
+      n.addEventListener('mouseleave', () => {
+        if (svg.classList.contains('playing')) return;
+        svg.classList.remove('tracing');
+        svg.querySelectorAll('.lit').forEach((el) => el.classList.remove('lit'));
+      });
+    });
+  });
+</script>

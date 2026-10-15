@@ -15,6 +15,9 @@ export const profile = {
     linkedin: 'https://www.linkedin.com/in/ayush-anand-917ab2220/',
   },
   resume: 'Ayush_Anand_Resume.pdf',
+  // "Now" line in the hero: edit freely
+  now: 'Building fallout remediation reporting and the Postgres migration at HiLabs',
+  updated: 'Oct 2026',
   avatar: 'avatar.jpg',
 };
 
@@ -39,4 +42,13 @@ export const achievements = [
   'Top 1.6% of 2.5 Lakh+ in JEE Advanced and top 0.6% of 10 Lakh+ in JEE Main (2020)',
   'Highest rating of 1798 on CodeChef and 1160 on Codeforces; 500+ problems solved',
   'Selected among the top 5% of applicants for Amazon ML Summer School',
+];
+
+// "By the numbers" strip: value counts up from 0 on scroll
+export const stats = [
+  { value: 1000, suffix: '+', label: 'files processed / day' },
+  { value: 43, suffix: 'M+', label: 'member records indexed' },
+  { value: 220, suffix: '×', label: 'faster remediation query' },
+  { value: 94, prefix: '~$', suffix: 'K', label: 'saved / year' },
+  { value: 1000, suffix: '+', label: 'commits at HiLabs' },
 ];

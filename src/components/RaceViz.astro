@@ -1,0 +1,96 @@
+---
+// Before/after race for the remediation fetch: 34 h vs 9 min, time-compressed.
+const COLS = 8, ROWS = 14; // mini table: 8 state partitions × 14 row blocks
+const cells = Array.from({ length: COLS * ROWS }, (_, i) => i);
+const hitCol = 2; // the one partition the new query touches
+const hitRows = [3, 4, 5, 9];
+---
+
+<div class="race rounded-xl border border-line bg-surface/60 p-4">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <p class="stage-label"><b>race</b> / the core query, before and after</p>
+    <button type="button" class="btn race-go">▶ race</button>
+  </div>
+
+  <div class="mt-4 space-y-3">
+    {
+      [
+        { key: 'old', label: 'before · 650 large IN-list queries', total: 34 * 60 },
+        { key: 'new', label: 'after · member-keyed, partition-pruned join', total: 9 },
+      ].map((r) => (
+        <div>
+          <div class="flex items-baseline justify-between font-mono text-[10.5px]">
+            <span class="text-muted">{r.label}</span>
+            <span class={`race-clock-${r.key} ${r.key === 'new' ? 'text-accent' : 'text-warn'}`}>0h 00m</span>
+          </div>
+          <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-2">
+            <div class={`race-bar-${r.key} h-full w-0 rounded-full ${r.key === 'new' ? 'bg-accent' : 'bg-warn'}`} data-total={r.total} />
+          </div>
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="mt-5 grid gap-4 sm:grid-cols-2">
+    {
+      [
+        { key: 'old', title: 'full table scan', note: 'MySQL drops the index on huge IN lists and reads every row' },
+        { key: 'new', title: 'index range scan', note: "only this chunk's members, inside one state partition" },
+      ].map((g) => (
+        <div>
+          <p class="font-mono text-[10px] text-faint">
+            <span class={g.key === 'new' ? 'text-accent' : 'text-warn'}>{g.title}</span> · {g.note}
+          </p>
+          <div class={`grid-${g.key} mt-2 grid gap-[3px]`} style={`grid-template-columns: repeat(${COLS}, 1fr)`}>
+            {cells.map((i) => (
+              <span
+                class="cell h-[9px] rounded-[2px] bg-surface-2"
+                data-col={i % COLS}
+                data-row={Math.floor(i / COLS)}
+                data-hit={g.key === 'new' && i % COLS === hitCol && hitRows.includes(Math.floor(i / COLS)) ? '1' : undefined}
+              />
+            ))}
+          </div>
+        </div>
+      ))
+    }
+  </div>
+  <p class="mt-3 font-mono text-[9.5px] text-faint">34 hours compressed into 8 seconds · same 3.9M rows returned</p>
+</div>
+
+<style>
+  .text-warn { color: var(--color-warn); }
+  .bg-warn { background: var(--color-warn); }
+  .cell.on-old { background: rgb(255 138 92 / 0.75); }
+  .cell.on-new { background: var(--color-accent); box-shadow: 0 0 6px rgb(196 240 77 / 0.5); }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.race').forEach((race) => {
+    const btn = race.querySelector<HTMLButtonElement>('.race-go')!;
+    const DUR = 8000, OLD = 34 * 60, NEW = 9; // minutes
+    const fmt = (m: number) => `${Math.floor(m / 60)}h ${String(Math.floor(m % 60)).padStart(2, '0')}m`;
+    const oldCells = [...race.querySelectorAll<HTMLElement>('.grid-old .cell')];
+    const newCells = [...race.querySelectorAll<HTMLElement>('.grid-new .cell[data-hit]')];
+    let raf = 0;
+
+    btn.addEventListener('click', () => {
+      cancelAnimationFrame(raf);
+      race.querySelectorAll('.cell').forEach((c) => c.classList.remove('on-old', 'on-new'));
+      btn.textContent = '↺ race again';
+      const t0 = performance.now();
+      const frame = (t: number) => {
+        const minutes = ((t - t0) / DUR) * OLD; // simulated wall-clock
+        const pOld = Math.min(minutes / OLD, 1), pNew = Math.min(minutes / NEW, 1);
+        race.querySelector<HTMLElement>('.race-bar-old')!.style.width = `${pOld * 100}%`;
+        race.querySelector<HTMLElement>('.race-bar-new')!.style.width = `${pNew * 100}%`;
+        race.querySelector('.race-clock-old')!.textContent = pOld >= 1 ? '34h 00m ✓' : fmt(minutes);
+        race.querySelector('.race-clock-new')!.textContent = pNew >= 1 ? '0h 09m ✓' : fmt(minutes);
+        oldCells.slice(0, Math.floor(pOld * oldCells.length)).forEach((c) => c.classList.add('on-old'));
+        newCells.slice(0, Math.ceil(pNew * newCells.length)).forEach((c) => c.classList.add('on-new'));
+        if (pOld < 1) raf = requestAnimationFrame(frame);
+      };
+      raf = requestAnimationFrame(frame);
+    });
+  });
+</script>

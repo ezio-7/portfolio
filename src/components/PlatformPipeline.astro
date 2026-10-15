@@ -33,7 +33,7 @@ const path =
     }
     {
       pos.map((p) => (
-        <g class="stage" data-tip={p.tip} tabindex="0">
+        <g class="stage" data-tip={p.tip}>
           <rect x={p.x} y={p.y - pillH / 2} width={pillW} height={pillH} rx="15" />
           <text x={p.x + 12} y={p.y + 3.5} class="fill-faint font-mono" font-size="9">
             {String(p.n).padStart(2, '0')}

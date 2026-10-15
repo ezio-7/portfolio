@@ -1,0 +1,77 @@
+---
+import { activity } from '../data/activity';
+
+// GitHub-style calendar, weekdays only: one column per week (Mon–Fri rows)
+const dates = Object.keys(activity).sort();
+const day = 86400000;
+const parse = (s: string) => new Date(s + 'T00:00:00Z').getTime();
+const first = parse(dates[0]), last = parse(dates[dates.length - 1]);
+const start = first - ((new Date(first).getUTCDay() + 6) % 7) * day; // back to Monday
+const weeks = Math.ceil((last - start + day) / (7 * day));
+const total = Object.values(activity).reduce((a, b) => a + b, 0);
+const activeDays = dates.length;
+const level = (n: number) => (n === 0 ? 0 : n <= 2 ? 1 : n <= 5 ? 2 : n <= 9 ? 3 : 4);
+const fmt = (t: number) => new Date(t).toISOString().slice(0, 10);
+
+const cols = Array.from({ length: weeks }, (_, w) =>
+  Array.from({ length: 5 }, (_, d) => {
+    const t = start + (w * 7 + d) * day;
+    const key = fmt(t);
+    const n = activity[key] ?? 0;
+    return { key, n, lvl: t < first || t > last ? -1 : level(n) };
+  }),
+);
+const months = cols
+  .map((c, i) => ({ i, m: new Date(parse(c[0].key)).getUTCMonth(), y: new Date(parse(c[0].key)).getUTCFullYear() }))
+  .filter((c, i, a) => i === 0 || c.m !== a[i - 1].m)
+  .map((c) => ({ i: c.i, label: new Date(Date.UTC(c.y, c.m)).toLocaleString('en-US', { month: 'short', timeZone: 'UTC' }) }));
+const cell = 9, gap = 3, W = 22 + weeks * (cell + gap), H = 5 * (cell + gap) + 16;
+---
+
+<div class="reveal mt-3 rounded-xl border border-line bg-surface p-4">
+  <div class="flex flex-wrap items-baseline justify-between gap-2">
+    <p class="stage-label">work activity · hilabs</p>
+    <p class="font-mono text-[10.5px] text-faint">
+      <span class="text-ink">{total.toLocaleString('en-US')}</span> commits across {activeDays} days
+    </p>
+  </div>
+  <div class="hm-wrap mt-3 overflow-x-auto">
+    <svg viewBox={`0 0 ${W} ${H}`} class="block h-auto w-full min-w-[560px]" role="img" aria-label={`${total} commits over ${activeDays} days`}>
+      {months.map((m) => (
+        <text x={22 + m.i * (cell + gap)} y="9" class="fill-faint font-mono" font-size="9">{m.label}</text>
+      ))}
+      {['Mon', 'Wed', 'Fri'].map((d, i) => (
+        <text x="0" y={16 + i * 2 * (cell + gap) + cell - 1} class="fill-faint font-mono" font-size="8">{d}</text>
+      ))}
+      {cols.map((c, w) =>
+        c.map((d, i) =>
+          d.lvl >= 0 && (
+            <rect
+              x={22 + w * (cell + gap)}
+              y={16 + i * (cell + gap)}
+              width={cell}
+              height={cell}
+              rx="2.5"
+              class={`hm l${d.lvl}`}
+              data-tip={`${d.n} commit${d.n === 1 ? '' : 's'} · ${d.key}`}
+            />
+          ),
+        ),
+      )}
+    </svg>
+  </div>
+  <div class="mt-2 flex items-center justify-end gap-1 font-mono text-[9.5px] text-faint">
+    less
+    {[0, 1, 2, 3, 4].map((l) => <svg width="10" height="10"><rect width="10" height="10" rx="2" class={`hm l${l}`} /></svg>)}
+    more
+  </div>
+</div>
+
+<style>
+  .hm-wrap { scrollbar-width: thin; scrollbar-color: var(--color-line-2) transparent; }
+  .hm { fill: var(--color-surface-2); stroke: var(--color-line); stroke-width: 0.5; }
+  .hm.l1 { fill: rgb(196 240 77 / 0.22); stroke: none; }
+  .hm.l2 { fill: rgb(196 240 77 / 0.42); stroke: none; }
+  .hm.l3 { fill: rgb(196 240 77 / 0.68); stroke: none; }
+  .hm.l4 { fill: var(--color-accent); stroke: none; }
+</style>

@@ -1,6 +1,8 @@
 ---
 import SectionHead from './SectionHead.astro';
 import Diagram from './Diagram.astro';
+import RaceViz from './RaceViz.astro';
+import Ticker from './Ticker.astro';
 import { caseStudies } from '../data/caseStudies';
 ---
 
@@ -36,6 +38,8 @@ import { caseStudies } from '../data/caseStudies';
             ))}
           </div>
 
+          {c.id === 'member-matching' && <div class="mt-2"><Ticker /></div>}
+
           <div class="mt-4 flex flex-wrap gap-1.5">
             {c.stack.map((s) => <span class="tag">{s}</span>)}
           </div>
@@ -50,7 +54,7 @@ import { caseStudies } from '../data/caseStudies';
 
   {
     caseStudies.map((c, i) => (
-      <dialog id={`dlg-${c.id}`} class="arch" aria-labelledby={`dlg-title-${c.id}`}>
+      <dialog id={`dlg-${c.id}`} class="arch" aria-labelledby={`dlg-title-${c.id}`} data-steps={JSON.stringify(c.steps)}>
         <div class="card max-h-[calc(100vh-32px)] overflow-y-auto border-line-2 bg-bg p-5 sm:p-7">
           <div class="flex items-start justify-between gap-4">
             <div>
@@ -90,9 +94,13 @@ import { caseStudies } from '../data/caseStudies';
               <Diagram diagram={c.diagram} id={c.id} />
             </div>
           </div>
-          <p class="mt-2 font-mono text-[10.5px] text-faint">
-            hover or tap a component for details · dashed = retired or supporting path
-          </p>
+          <div class="player mt-2.5 flex items-center gap-3">
+            <button type="button" class="btn play shrink-0 px-2.5 py-1 font-mono text-[11px]">▶ play</button>
+            <p class="caption min-h-[20px] flex-1 text-[12.5px] text-muted">
+              Hover a component to trace what feeds it and what it feeds, or press ▶ to walk a record through.
+            </p>
+            <span class="count font-mono text-[10px] text-faint" />
+          </div>
 
           <div class="mt-6 flex flex-wrap items-end justify-between gap-4">
             <div class="flex flex-wrap gap-x-6 gap-y-2">
@@ -107,6 +115,8 @@ import { caseStudies } from '../data/caseStudies';
               {c.stack.map((s) => <span class="tag">{s}</span>)}
             </div>
           </div>
+          {c.id === 'member-matching' && <div class="mt-2"><Ticker /></div>}
+          {c.id === 'fallout-remediation' && <div class="mt-6"><RaceViz /></div>}
         </div>
       </dialog>
     ))
@@ -114,11 +124,84 @@ import { caseStudies } from '../data/caseStudies';
 </section>
 
 <script>
+  type Step = { node: string; text: string };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const runs = new WeakMap<HTMLDialogElement, number>();
+
+  // Move the pulse dot along the edge between two nodes (either direction)
+  const travel = async (svg: SVGSVGElement, from: string, to: string) => {
+    const pulse = svg.querySelector<SVGCircleElement>('.pulse')!;
+    let g = svg.querySelector<SVGGElement>(`.dedge[data-from="${from}"][data-to="${to}"]`), rev = false;
+    if (!g) { g = svg.querySelector(`.dedge[data-from="${to}"][data-to="${from}"]`); rev = true; }
+    if (!g || reduce) return;
+    g.classList.add('lit');
+    const path = g.querySelector<SVGPathElement>('path.base')!, len = path.getTotalLength();
+    const t0 = performance.now(), dur = 650;
+    await new Promise<void>((done) => {
+      const f = (t: number) => {
+        const p = Math.min((t - t0) / dur, 1), e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        const pt = path.getPointAtLength(len * (rev ? 1 - e : e));
+        pulse.setAttribute('cx', String(pt.x)); pulse.setAttribute('cy', String(pt.y));
+        p < 1 ? requestAnimationFrame(f) : done();
+      };
+      requestAnimationFrame(f);
+    });
+  };
+
+  async function play(dlg: HTMLDialogElement) {
+    const id = (runs.get(dlg) ?? 0) + 1;
+    runs.set(dlg, id);
+    const steps: Step[] = JSON.parse(dlg.dataset.steps!);
+    const svg = dlg.querySelector<SVGSVGElement>('svg.diagram')!;
+    const caption = dlg.querySelector<HTMLElement>('.caption')!;
+    const count = dlg.querySelector<HTMLElement>('.count')!;
+    const btn = dlg.querySelector<HTMLButtonElement>('.play')!;
+    const node = (n: string) => svg.querySelector<SVGGElement>(`.dnode[data-id="${n}"]`)!;
+    svg.classList.remove('tracing');
+    svg.querySelectorAll('.lit, .seen').forEach((el) => el.classList.remove('lit', 'seen'));
+    svg.classList.add('playing');
+    btn.textContent = '■ stop';
+    for (let i = 0; i < steps.length; i++) {
+      if (runs.get(dlg) !== id || !dlg.open) return;
+      if (i > 0) {
+        node(steps[i - 1].node).classList.replace('lit', 'seen');
+        await travel(svg, steps[i - 1].node, steps[i].node);
+      }
+      node(steps[i].node).classList.remove('seen');
+      node(steps[i].node).classList.add('lit');
+      caption.textContent = steps[i].text;
+      caption.classList.add('text-ink');
+      count.textContent = `${i + 1} / ${steps.length}`;
+      await sleep(reduce ? 1800 : 2100);
+    }
+    if (runs.get(dlg) === id) stop(dlg, true);
+  }
+
+  function stop(dlg: HTMLDialogElement, finished = false) {
+    runs.set(dlg, (runs.get(dlg) ?? 0) + 1);
+    const svg = dlg.querySelector<SVGSVGElement>('svg.diagram')!;
+    svg.classList.remove('playing');
+    svg.querySelectorAll('.lit, .seen').forEach((el) => el.classList.remove('lit', 'seen'));
+    svg.querySelector('.pulse')?.setAttribute('cx', '-20');
+    dlg.querySelector<HTMLButtonElement>('.play')!.textContent = finished ? '↺ replay' : '▶ play';
+    if (!finished) {
+      dlg.querySelector('.caption')!.classList.remove('text-ink');
+      dlg.querySelector('.count')!.textContent = '';
+    }
+  }
+
   document.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const dlg = document.getElementById(`dlg-${btn.dataset.open}`) as HTMLDialogElement;
       dlg.showModal();
+      if ((window as any).explainMode) setTimeout(() => play(dlg), 350);
     });
+  });
+  document.querySelectorAll<HTMLDialogElement>('dialog.arch').forEach((dlg) => {
+    const btn = dlg.querySelector<HTMLButtonElement>('.play')!;
+    btn.addEventListener('click', () => (btn.textContent?.startsWith('■') ? stop(dlg) : play(dlg)));
+    dlg.addEventListener('close', () => stop(dlg));
   });
   document.querySelectorAll<HTMLDialogElement>('dialog.arch').forEach((dlg) => {
     dlg.querySelector('[data-close]')?.addEventListener('click', () => dlg.close());
