@@ -3,7 +3,7 @@ export const profile = {
   role: 'Backend Engineer',
   focus: ['Python', 'Java', 'SQL at scale'],
   tagline:
-    'I build backend systems that move healthcare data at scale: services, pipelines, and the SQL that keeps them fast.',
+    'I build backend systems that move data at scale: services, pipelines, and the SQL that keeps them fast.',
   // Hiring snapshot shown in the hero; leave a field '' to hide it
   hiring: {
     open: true,
@@ -13,7 +13,7 @@ export const profile = {
     notice: '2 months',
   },
   about: [
-    'Backend engineer at HiLabs, building the services behind a clinical data platform that ingests 1,000+ files a day for multiple US health plans. Most of my work sits where Python services meet Java orchestration and SQL that has to stay fast at tens of millions of rows.',
+    'Backend engineer at HiLabs, building the services behind a data platform that ingests 1,000+ files a day. Most of my work sits where Python services meet Java orchestration and SQL that has to stay fast at tens of millions of rows.',
     'Before that I built backends at EY and interned across microservices, message queues and real-time apps. IIT Kharagpur graduate.',
   ],
   email: 'ayushanand.app@gmail.com',
@@ -23,6 +23,8 @@ export const profile = {
     linkedin: 'https://www.linkedin.com/in/ayush-anand-917ab2220/',
   },
   resume: 'Ayush_Anand_Resume.pdf',
+  // the tracked /resume/?ref= link opens this copy (Google Drive)
+  resumeDrive: 'https://drive.google.com/file/d/1XZI10l2HDQkp6McXhj5-Ea383Yf_Hf4r/view?usp=sharing',
   // "Now" line in the hero: edit freely
   now: 'Building fallout remediation reporting and the Postgres migration at HiLabs',
   updated: 'Oct 2026',

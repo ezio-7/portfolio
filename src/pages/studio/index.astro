@@ -56,7 +56,10 @@ const tabs = [
             <input id="company" placeholder="company" class="st-input" autocomplete="off" />
             <input id="role" placeholder="role, e.g. SDE-2 Backend" class="st-input" autocomplete="off" />
           </div>
-          <p class="font-mono text-[10.5px] text-faint">portfolio link: <span id="ref-link" class="text-accent"></span> <button type="button" id="copy-ref" class="ml-1 hover:text-accent">copy</button></p>
+          <div class="space-y-0.5 font-mono text-[10.5px] text-faint">
+            <p>résumé link: <span id="resume-link" class="text-accent"></span> <button type="button" id="copy-resume" class="ml-1 hover:text-accent">copy</button></p>
+            <p>portfolio link: <span id="ref-link" class="text-accent"></span> <button type="button" id="copy-ref" class="ml-1 hover:text-accent">copy</button></p>
+          </div>
 
           <!-- TAILOR -->
           <section data-panel="tailor" class="space-y-4">
@@ -93,7 +96,11 @@ const tabs = [
 
           <!-- MESSAGES -->
           <section data-panel="messages" class="hidden space-y-3">
-            <p class="text-[12px] text-muted">Built from the JD on the Tailor tab, your matched strengths and your strongest proof points.</p>
+            <p class="text-[12px] text-muted">Leads with your résumé link. Add the JD to tailor the message to the role; it is shared with the Tailor tab.</p>
+            <div>
+              <label for="jd-msg" class="stage-label">job description (optional)</label>
+              <textarea id="jd-msg" rows="5" placeholder="Paste the JD to tailor the message…" class="st-input mt-2 w-full resize-y"></textarea>
+            </div>
             <div class="flex gap-1 rounded-full border border-line-2 p-0.5 font-mono text-[11px] w-fit" role="group">
               <button type="button" class="msg-kind rounded-full px-3 py-1" data-kind="cover" aria-pressed="true">cover letter</button>
               <button type="button" class="msg-kind rounded-full px-3 py-1" data-kind="linkedin" aria-pressed="false">LinkedIn note</button>
@@ -205,6 +212,7 @@ const tabs = [
       import {
         loadApps, saveApps, getToken, setToken, slug, refLink, today, message, messagePrompt,
         fetchRefStats, ago, STATUSES, type App, type MsgKind, type RefStats,
+        resumeLink,
       } from '../../lib/studio';
 
       const source: string = JSON.parse(document.getElementById('tex-src')!.textContent!);
@@ -224,7 +232,7 @@ const tabs = [
       const show = (tab: string) => {
         document.querySelectorAll<HTMLButtonElement>('.st-tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
         document.querySelectorAll<HTMLElement>('[data-panel]').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== tab));
-        if (tab === 'messages') renderMessage();
+        if (tab === 'messages') { $<HTMLTextAreaElement>('jd-msg').value = jdEl.value; renderMessage(); }
         if (tab === 'apps') renderApps();
       };
       document.querySelectorAll<HTMLButtonElement>('.st-tab').forEach((b) => b.addEventListener('click', () => show(b.dataset.tab!)));
@@ -268,12 +276,25 @@ const tabs = [
           ? atsMissing(jd, current).map((m) => `<span class="chip ${m.skill ? 'skill' : ''}">${esc(m.term)}</span>`).join('') || '<span class="text-[12px] text-faint">nothing missing</span>'
           : '';
         $('ref-link').textContent = link();
+        $('resume-link').textContent = resumeLink(companyEl.value.trim() ? ref() : '');
       };
       let t = 0;
       jdEl.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(run, 250); });
+      // the Messages tab has its own JD box, kept in sync with the Tailor one
+      const jdMsg = $<HTMLTextAreaElement>('jd-msg');
+      jdMsg.addEventListener('input', () => {
+        jdEl.value = jdMsg.value;
+        clearTimeout(t);
+        t = window.setTimeout(() => { run(); renderMessage(); }, 250);
+      });
       trimEl.addEventListener('change', run);
       sumEl.addEventListener('change', run);
-      companyEl.addEventListener('input', () => { $('ref-link').textContent = link(); renderMessage(); });
+      companyEl.addEventListener('input', () => {
+        $('ref-link').textContent = link();
+        $('resume-link').textContent = resumeLink(companyEl.value.trim() ? ref() : '');
+        renderMessage();
+      });
+      $('copy-resume').addEventListener('click', () => copy($('resume-link').textContent!, 'résumé link'));
       roleEl.addEventListener('input', () => renderMessage());
       $('copy-ref').addEventListener('click', () => copy(link(), 'link'));
 
@@ -294,7 +315,7 @@ const tabs = [
       // ---------- messages ----------
       const ctx = () => ({
         company: companyEl.value.trim(), role: roleEl.value.trim(), person: $<HTMLInputElement>('person').value.trim(),
-        link: link(), matched: last.matched, proofs: last.proofs, email: parse(source).header.email, phone: parse(source).header.phone,
+        resume: resumeLink(companyEl.value.trim() ? ref() : ''), portfolio: link(), matched: last.matched, proofs: last.proofs, email: parse(source).header.email, phone: parse(source).header.phone,
       });
       const renderMessage = () => {
         const text = message(kind, ctx());
@@ -311,10 +332,7 @@ const tabs = [
       $('person').addEventListener('input', renderMessage);
       $('msg-out').addEventListener('input', () => ($('msg-count').textContent = `${$<HTMLTextAreaElement>('msg-out').value.length} characters`));
       $('msg-copy').addEventListener('click', () => copy($<HTMLTextAreaElement>('msg-out').value, 'message'));
-      $('msg-prompt').addEventListener('click', () => {
-        if (!jdEl.value.trim()) { flash('paste the JD on the Tailor tab first'); return; }
-        copy(messagePrompt(kind, ctx(), jdEl.value, source), 'prompt');
-      });
+      $('msg-prompt').addEventListener('click', () => copy(messagePrompt(kind, ctx(), jdEl.value, source), 'prompt'));
 
       // ---------- applications ----------
       const persist = () => { saveApps(apps); renderApps(); };

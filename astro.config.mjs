@@ -8,7 +8,7 @@ export default defineConfig({
   base: '/portfolio',
   trailingSlash: 'always',
   // the studio is unlisted: keep it out of the sitemap
-  integrations: [sitemap({ filter: (page) => !page.includes('/studio') })],
+  integrations: [sitemap({ filter: (page) => !page.includes('/studio') && !page.includes('/resume/') })],
   vite: {
     plugins: [tailwindcss()],
   },

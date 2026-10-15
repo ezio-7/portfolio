@@ -27,12 +27,14 @@ export const slug = (company: string) =>
   company.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'company';
 export const SITE = 'https://ezio-7.github.io/portfolio/';
 export const refLink = (ref: string) => `${SITE}?ref=${ref}`;
+/** Tracked résumé link: logs who opened it, then shows the PDF */
+export const resumeLink = (ref: string) => (ref ? `${SITE}resume/?ref=${ref}` : `${SITE}Ayush_Anand_Resume.pdf`);
 export const today = () => new Date().toISOString().slice(0, 10);
 
 // ---------- outreach messages (templates; no AI) ----------
 export type MsgKind = 'cover' | 'linkedin' | 'referral';
 export type MsgCtx = {
-  company: string; role: string; person: string; link: string;
+  company: string; role: string; person: string; resume: string; portfolio: string;
   matched: string[]; proofs: string[]; email: string; phone: string;
 };
 const and = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
@@ -45,11 +47,12 @@ export const message = (kind: MsgKind, c: MsgCtx): string => {
     return [
       `Dear ${c.person || `Hiring Team at ${company}`},`,
       '',
-      `I'm applying for the ${role} role at ${company}. I'm a backend engineer with 2+ years of experience building services in Python and Java, currently on a healthcare data platform at HiLabs that processes 1,000+ files a day for US health plans.`,
+      `I'm applying for the ${role} role at ${company}. I'm a backend engineer with 2+ years of experience building services in Python and Java. At HiLabs I work on the backend of a data platform that processes 1,000+ files a day: ingestion pipelines, Spring Boot services, and SQL that stays fast at tens of millions of rows.`,
       '',
       ...(c.proofs.length ? ['A few things that map to what you are looking for:', ...c.proofs.map((p) => `- ${p}`), ''] : []),
       ...(skills ? [`I work day to day with ${skills}, which your description calls out.`, ''] : []),
-      `You can see the systems I have built, with architecture diagrams and live demos, here: ${c.link}`,
+      "I've attached my résumé.",
+      `More detail, with architecture diagrams and live demos: ${c.portfolio}`,
       '',
       "I'd welcome the chance to talk.",
       '',
@@ -61,7 +64,7 @@ export const message = (kind: MsgKind, c: MsgCtx): string => {
   if (kind === 'linkedin') {
     // LinkedIn connection notes are capped at 300 characters: keep the first proof point only if it fits
     const note = (proof: string) =>
-      `Hi ${c.person || 'there'}, I just applied for the ${role} role at ${company}. Backend engineer (Python/Java) on healthcare data at HiLabs.${proof} Portfolio: ${c.link}`;
+      `Hi ${c.person || 'there'}, I just applied for the ${role} role at ${company}. Backend engineer (Python/Java, 2+ yrs) at HiLabs.${proof} Résumé: ${c.resume}`;
     const withProof = c.proofs[0] ? note(` Recently ${lc(c.proofs[0]).replace(/\.$/, '')}.`) : '';
     return withProof && withProof.length <= 300 ? withProof : note('');
   }
@@ -70,7 +73,7 @@ export const message = (kind: MsgKind, c: MsgCtx): string => {
     '',
     `I'm interested in the ${role} role at ${company}. It lines up closely with what I do at HiLabs${skills ? `: ${skills}` : ''}${c.proofs[0] ? `, most recently ${lc(c.proofs[0]).replace(/\.$/, '')}` : ''}.`,
     '',
-    `Would you be open to referring me? Here's my portfolio (my résumé is linked there): ${c.link}`,
+    "Would you be open to referring me? I've attached my résumé.",
     '',
     'Thanks a lot, and happy to answer anything!',
   ].join('\n');
@@ -85,15 +88,11 @@ export const messagePrompt = (kind: MsgKind, c: MsgCtx, jd: string, tex: string)
 
 Rules:
 - Use ONLY facts from my résumé below. Do not invent experience, numbers or skills.
-- Pick the 2–3 achievements most relevant to the job description.
-- Include this link to my portfolio exactly as written: ${c.link}
+- ${jd.trim() ? 'Pick the 2–3 achievements most relevant to the job description, and mirror its priorities.' : 'Pick my 2–3 strongest achievements for a backend role.'}
+- Describe what I build (backend services, pipelines, SQL performance). Don't lead with the healthcare domain unless the job is in healthcare.
+- ${kind === 'linkedin' ? `Include this link to my résumé exactly as written: ${c.resume}` : `Say that my résumé is attached (I attach it myself; don't include a résumé link).`}${kind === 'cover' ? `\n- You may add my portfolio link as a secondary line: ${c.portfolio}` : ''}
 - Sound like a person, not a template. No buzzwords.
-
-Job description:
-"""
-${jd.trim()}
-"""
-
+${jd.trim() ? `\nJob description:\n"""\n${jd.trim()}\n"""\n` : ''}
 My résumé (.tex):
 \`\`\`latex
 ${tex}
@@ -104,6 +103,7 @@ export type RefStats = { visits: number; last: string; actions: { label: string;
 
 const label = (name: string) => {
   if (name === 'resume-download') return 'downloaded the résumé';
+  if (name === 'resume-open') return 'opened the résumé link';
   if (name.startsWith('case-')) return `opened ${name.slice(5).replace(/-/g, ' ')}`;
   if (name.startsWith('play-')) return `playground: ${name.slice(5)}`;
   if (name === 'tour-start') return 'took the tour';
