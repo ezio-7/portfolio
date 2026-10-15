@@ -4,6 +4,13 @@ import Diagram from './Diagram.astro';
 import RaceViz from './RaceViz.astro';
 import Ticker from './Ticker.astro';
 import { caseStudies } from '../data/caseStudies';
+
+// Case study → its hands-on Playground tab
+const playLink: Record<string, { tab: string; label: string }> = {
+  'fallout-remediation': { tab: 'inlist', label: 'try the IN-list batch-size playground' },
+  'member-matching': { tab: 'matching', label: 'try the member-matching playground' },
+  orchestration: { tab: 'healing', label: 'try the self-healing sandbox' },
+};
 ---
 
 <section id="work" class="py-16">
@@ -18,6 +25,7 @@ import { caseStudies } from '../data/caseStudies';
         <button
           type="button"
           data-open={c.id}
+          data-skills={c.stack.join('|')}
           class="case reveal card group relative flex flex-col p-4 text-left transition-colors hover:border-line-2"
         >
           <div class="flex items-start justify-between gap-3">
@@ -117,6 +125,11 @@ import { caseStudies } from '../data/caseStudies';
           </div>
           {c.id === 'member-matching' && <div class="mt-2"><Ticker /></div>}
           {c.id === 'fallout-remediation' && <div class="mt-6"><RaceViz /></div>}
+          {playLink[c.id] && (
+            <button type="button" class="try-it mt-5 font-mono text-[11px] text-accent hover:underline" data-tab={playLink[c.id].tab}>
+              {playLink[c.id].label} →
+            </button>
+          )}
         </div>
       </dialog>
     ))
@@ -198,6 +211,12 @@ import { caseStudies } from '../data/caseStudies';
       if ((window as any).explainMode) setTimeout(() => play(dlg), 350);
     });
   });
+  document.querySelectorAll<HTMLButtonElement>('.try-it').forEach((b) =>
+    b.addEventListener('click', () => {
+      b.closest<HTMLDialogElement>('dialog')!.close();
+      (window as any).openPlayground?.(b.dataset.tab);
+    }),
+  );
   document.querySelectorAll<HTMLDialogElement>('dialog.arch').forEach((dlg) => {
     const btn = dlg.querySelector<HTMLButtonElement>('.play')!;
     btn.addEventListener('click', () => (btn.textContent?.startsWith('■') ? stop(dlg) : play(dlg)));

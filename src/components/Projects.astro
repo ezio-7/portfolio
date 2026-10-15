@@ -5,11 +5,11 @@ import { projects } from '../data/projects';
 ---
 
 <section id="projects" class="py-16">
-  <SectionHead idx="04" name="projects" title="Things I've built on the side" />
+  <SectionHead idx="05" name="projects" title="Things I've built on the side" />
   <div class="grid gap-3 sm:grid-cols-2">
     {
       projects.map((p) => (
-        <article class="project reveal card flex flex-col overflow-hidden transition-colors hover:border-line-2">
+        <article data-skills={p.stack.join("|")} class="project reveal card flex flex-col overflow-hidden transition-colors hover:border-line-2">
           <div class="h-[110px] border-b border-line bg-bg">
             <ProjectCover motif={p.motif} />
           </div>

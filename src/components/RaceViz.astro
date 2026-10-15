@@ -9,7 +9,10 @@ const hitRows = [3, 4, 5, 9];
 <div class="race rounded-xl border border-line bg-surface/60 p-4">
   <div class="flex flex-wrap items-center justify-between gap-2">
     <p class="stage-label"><b>race</b> / the core query, before and after</p>
-    <button type="button" class="btn race-go">▶ race</button>
+    <div class="flex gap-2">
+      <button type="button" class="btn race-view px-2.5 font-mono text-[11px]" aria-pressed="false">EXPLAIN</button>
+      <button type="button" class="btn race-go">▶ race</button>
+    </div>
   </div>
 
   <div class="mt-4 space-y-3">
@@ -31,7 +34,35 @@ const hitRows = [3, 4, 5, 9];
     }
   </div>
 
-  <div class="mt-5 grid gap-4 sm:grid-cols-2">
+  <div class="race-explain mt-5 hidden space-y-3">
+    {
+      [
+        {
+          key: 'old',
+          title: 'before · one of 650 queries',
+          head: 'table             type   key   rows         Extra',
+          rows: ['fallout_records   ALL    NULL  ~65,000,000  Using where'],
+          note: 'IN list too large → planner gives up on the index → full scan, 650 times',
+        },
+        {
+          key: 'new',
+          title: 'after · one of 78 member batches',
+          head: 'table             type    key             rows     partitions',
+          rows: ['fallout_records   range   idx_member_key  ~50,000  p_TX', 'remediation_st…   eq_ref  PRIMARY         1        p_TX'],
+          note: 'driven by member key, pruned to one state partition, joined by primary key',
+        },
+      ].map((p) => (
+        <div>
+          <p class="font-mono text-[10px]"><span class={p.key === 'new' ? 'text-accent' : 'text-warn'}>{p.title}</span></p>
+          <pre class="mt-1.5 overflow-x-auto rounded-lg border border-line bg-bg p-3 font-mono text-[10.5px] leading-relaxed"><span class="text-faint">{p.head}</span>{'\n'}{p.rows.map((r) => <span class={p.key === 'new' ? 'text-accent' : 'text-warn'}>{r}{'\n'}</span>)}</pre>
+          <p class="mt-1 font-mono text-[9.5px] text-faint">{p.note}</p>
+        </div>
+      ))
+    }
+    <p class="font-mono text-[9.5px] text-faint">simplified EXPLAIN output</p>
+  </div>
+
+  <div class="race-grid mt-5 grid gap-4 sm:grid-cols-2">
     {
       [
         { key: 'old', title: 'full table scan', note: 'MySQL drops the index on huge IN lists and reads every row' },
@@ -73,6 +104,15 @@ const hitRows = [3, 4, 5, 9];
     const oldCells = [...race.querySelectorAll<HTMLElement>('.grid-old .cell')];
     const newCells = [...race.querySelectorAll<HTMLElement>('.grid-new .cell[data-hit]')];
     let raf = 0;
+
+    const view = race.querySelector<HTMLButtonElement>('.race-view')!;
+    view.addEventListener('click', () => {
+      const on = view.getAttribute('aria-pressed') !== 'true';
+      view.setAttribute('aria-pressed', String(on));
+      view.textContent = on ? 'grid' : 'EXPLAIN';
+      race.querySelector('.race-explain')!.classList.toggle('hidden', !on);
+      race.querySelector('.race-grid')!.classList.toggle('hidden', on);
+    });
 
     btn.addEventListener('click', () => {
       cancelAnimationFrame(raf);

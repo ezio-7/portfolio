@@ -34,7 +34,7 @@ import { experience } from '../data/experience';
           {r.blocks && (
             <div class="space-y-1.5">
               {r.blocks.map((b, j) => (
-                <details class="block-item card px-4 py-2.5" open={j < 2}>
+                <details class="block-item card px-4 py-2.5" open={j < 2} data-skills={b.stack.join("|")}>
                   <summary class="flex cursor-pointer list-none items-center justify-between gap-3">
                     <span class="text-[13.5px] font-medium">{b.title}</span>
                     <span class="flex items-center gap-2">
@@ -46,7 +46,7 @@ import { experience } from '../data/experience';
                   </summary>
                   <ul class="mt-2.5 mb-1 space-y-1">
                     {b.points.map((p) => (
-                      <li class="relative pl-4 text-[13px] text-ink/85">
+                      <li class="pt relative pl-4 text-[13px] text-ink/85">
                         <span class="absolute top-[9px] left-0 h-px w-2 bg-faint" />
                         {p}
                       </li>
@@ -60,7 +60,7 @@ import { experience } from '../data/experience';
           {r.points && (
             <ul class="mt-2.5 space-y-1">
               {r.points.map((p) => (
-                <li class="relative pl-4 text-[13px] text-ink/85">
+                <li class="pt relative pl-4 text-[13px] text-ink/85">
                   <span class="absolute top-[9px] left-0 h-px w-2 bg-faint" />
                   {p}
                 </li>

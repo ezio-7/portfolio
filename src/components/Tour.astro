@@ -1,0 +1,115 @@
+---
+// 30-second guided tour: spotlights the strongest moments, with a caption at each stop
+const stops = [
+  { sel: '[aria-label="Hiring snapshot"]', ms: 4200, text: 'Open to SDE-2 backend roles · 2+ years · 2-month notice.' },
+  { sel: '.stats', ms: 4500, text: '1,000+ files a day, 43M+ member records, a 220× faster query, ~$94K a year saved.' },
+  { sel: '#sim', ms: 10500, text: 'The HiLabs platform. Watch one record move through every stage.', action: 'sim' },
+  { sel: '[data-open="fallout-remediation"]', ms: 4500, text: 'Cut a 34-hour query to 9 minutes. Open it for the architecture and a live race.' },
+  { sel: '[data-open="member-matching"]', ms: 4500, text: "Moved matching off the platform's most expensive cloud service: ~$94K a year." },
+  { sel: '#playground .card', ms: 4500, text: 'Try the real problems yourself: query planner, member matching, DQ rules, self-healing.' },
+  { sel: '#contact .card', ms: 4000, text: 'Resume, email and LinkedIn are all here. Thanks for taking the tour.' },
+];
+---
+
+<div id="tour-frame" aria-hidden="true"></div>
+<div id="tour-card" role="dialog" aria-label="Guided tour" aria-live="polite">
+  <div class="flex items-center justify-between gap-3">
+    <p class="font-mono text-[10px] text-accent">tour · <span id="tour-n">1</span> / {stops.length}</p>
+    <div class="flex gap-1.5">
+      <button type="button" id="tour-prev" aria-label="Previous stop">←</button>
+      <button type="button" id="tour-next" aria-label="Next stop">→</button>
+      <button type="button" id="tour-end" aria-label="End tour">✕</button>
+    </div>
+  </div>
+  <p id="tour-text" class="mt-2 text-[13px] leading-snug text-ink"></p>
+  <div class="mt-3 h-[2px] overflow-hidden rounded-full bg-line"><div id="tour-bar" class="h-full bg-accent"></div></div>
+</div>
+
+<script type="application/json" id="tour-data" set:html={JSON.stringify(stops)} />
+
+<style>
+  #tour-frame {
+    position: fixed; z-index: 85; pointer-events: none; opacity: 0;
+    border: 1px solid var(--color-accent); border-radius: 14px;
+    box-shadow: 0 0 0 9999px rgb(4 5 6 / 0.62), 0 0 24px rgb(196 240 77 / 0.25);
+    transition: top 0.45s ease, left 0.45s ease, width 0.45s ease, height 0.45s ease, opacity 0.25s;
+  }
+  #tour-frame.on { opacity: 1; }
+  #tour-card {
+    position: fixed; z-index: 86; left: 50%; bottom: 22px; width: min(440px, calc(100vw - 24px));
+    transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+    background: #121418; border: 1px solid var(--color-line-2); border-radius: 12px; padding: 12px 14px;
+    transition: opacity 0.25s, transform 0.25s;
+  }
+  #tour-card.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  #tour-card button {
+    border: 1px solid var(--color-line-2); border-radius: 6px; width: 24px; height: 22px;
+    font-size: 11px; color: var(--color-muted);
+  }
+  #tour-card button:hover { color: var(--color-accent); border-color: var(--color-accent); }
+  #tour-bar { width: 0; }
+</style>
+
+<script>
+  type Stop = { sel: string; ms: number; text: string; action?: string };
+  const stops: Stop[] = JSON.parse(document.getElementById('tour-data')!.textContent!);
+  const frame = document.getElementById('tour-frame')!;
+  const card = document.getElementById('tour-card')!;
+  const bar = document.getElementById('tour-bar')!;
+  let i = -1, timer = 0, raf = 0, startedAt = 0, target: Element | null = null;
+
+  const place = () => {
+    if (target) {
+      const r = target.getBoundingClientRect(), pad = 8;
+      Object.assign(frame.style, { top: `${r.top - pad}px`, left: `${r.left - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
+    }
+    const p = Math.min((performance.now() - startedAt) / stops[i].ms, 1);
+    bar.style.width = `${p * 100}%`;
+    raf = requestAnimationFrame(place);
+  };
+
+  const go = (n: number) => {
+    clearTimeout(timer);
+    if (n < 0) n = 0;
+    if (n >= stops.length) return end();
+    i = n;
+    const s = stops[i];
+    target = document.querySelector(s.sel);
+    target?.closest('.reveal')?.classList.add('in');
+    target?.classList.add('in');
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('tour-n')!.textContent = String(i + 1);
+    document.getElementById('tour-text')!.textContent = s.text;
+    if (s.action === 'sim') setTimeout(() => (window as any).runSimulator?.('good'), 500);
+    startedAt = performance.now();
+    timer = window.setTimeout(() => go(i + 1), s.ms);
+  };
+
+  const start = () => {
+    document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => d.close());
+    frame.classList.add('on');
+    card.classList.add('on');
+    cancelAnimationFrame(raf);
+    go(0);
+    raf = requestAnimationFrame(place);
+  };
+  const end = () => {
+    clearTimeout(timer);
+    cancelAnimationFrame(raf);
+    frame.classList.remove('on');
+    card.classList.remove('on');
+    i = -1; target = null;
+  };
+
+  document.getElementById('tour-next')!.addEventListener('click', () => go(i + 1));
+  document.getElementById('tour-prev')!.addEventListener('click', () => go(i - 1));
+  document.getElementById('tour-end')!.addEventListener('click', end);
+  document.addEventListener('keydown', (e) => {
+    if (i < 0) return;
+    if (e.key === 'Escape') end();
+    if (e.key === 'ArrowRight') go(i + 1);
+    if (e.key === 'ArrowLeft') go(i - 1);
+  });
+  document.querySelectorAll('.tour-start').forEach((b) => b.addEventListener('click', start));
+  (window as any).startTour = start;
+</script>

@@ -1,0 +1,402 @@
+---
+import SectionHead from './SectionHead.astro';
+import { inList, members, matchPresets, dqRules, dqBatch, garbageCodes, today } from '../data/playground';
+
+const tabs = [
+  { id: 'inlist', label: 'IN-list batch size', note: 'why one batch size took a query from minutes to hours' },
+  { id: 'matching', label: 'Member matching', note: 'how a record finds its member' },
+  { id: 'dq', label: 'DQ rules', note: 'how rules decide what is usable' },
+  { id: 'healing', label: 'Self-healing', note: 'what happens when a job dies' },
+];
+const data = { inList, members, dqRules, dqBatch, garbageCodes, today };
+---
+
+<section id="playground" class="py-16">
+  <SectionHead idx="04" name="playground" title="Try the systems yourself" />
+  <p class="-mt-3 mb-5 max-w-[560px] text-[12.5px] text-muted">
+    Small, hands-on versions of real problems from my work. Synthetic data, real logic.
+  </p>
+
+  <div class="reveal card overflow-hidden">
+    <div class="flex overflow-x-auto border-b border-line" role="tablist" aria-label="Playground">
+      {
+        tabs.map((t, i) => (
+          <button
+            type="button"
+            role="tab"
+            id={`tab-${t.id}`}
+            aria-controls={`pg-${t.id}`}
+            aria-selected={i === 0 ? 'true' : 'false'}
+            class="pg-tab shrink-0 px-4 py-2.5 text-[12.5px] whitespace-nowrap"
+            data-tab={t.id}
+          >
+            {t.label}
+          </button>
+        ))
+      }
+    </div>
+
+    <!-- 1. IN-list batch size -->
+    <div id="pg-inlist" role="tabpanel" aria-labelledby="tab-inlist" class="pg-panel p-4 sm:p-5">
+      <p class="text-[12.5px] text-muted">
+        Member lookups send batches of IDs as <code class="font-mono text-ink">WHERE id IN (…)</code>. Drag the batch size and watch
+        MySQL's planner.
+      </p>
+      <div class="mt-4">
+        <div class="flex items-baseline justify-between">
+          <label for="inl-range" class="font-mono text-[11px] text-muted">batch size</label>
+          <span class="font-mono text-[15px] text-ink"><span id="inl-n">10,000</span> IDs</span>
+        </div>
+        <input id="inl-range" type="range" min="0" max="1000" value="500" class="pg-range mt-2 w-full" aria-label="IN-list batch size" />
+        <div class="relative mt-1 h-4 font-mono text-[9.5px] text-faint">
+          <span class="absolute left-0">1K</span>
+          <span class="absolute -translate-x-1/2 text-accent" style="left: 50%">10K · chosen</span>
+          <span class="absolute right-0">100K</span>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <div class="flex justify-between font-mono text-[10.5px] text-muted">
+          <span>planner memory</span><span id="inl-mem">1.0 MB / 8 MB</span>
+        </div>
+        <div class="relative mt-1.5 h-2.5 rounded-full bg-surface-2">
+          <div id="inl-bar" class="h-full rounded-full bg-accent transition-[width] duration-150"></div>
+          <span class="absolute top-[-4px] h-[18px] w-px bg-warn" style="left: 62.5%"></span>
+        </div>
+        <div class="relative mt-1 h-4"><span class="absolute -translate-x-1/2 font-mono text-[9.5px] text-warn" style="left: 62.5%">8 MB limit</span></div>
+      </div>
+
+      <div class="mt-4 grid gap-3 sm:grid-cols-3">
+        <div class="rounded-lg border border-line bg-bg p-3">
+          <p class="font-mono text-[9.5px] text-faint uppercase">query plan</p>
+          <p id="inl-plan" class="mt-1 font-mono text-[13px]">range</p>
+          <p id="inl-plan-note" class="mt-0.5 text-[11.5px] text-muted">uses the index</p>
+        </div>
+        <div class="rounded-lg border border-line bg-bg p-3">
+          <p class="font-mono text-[9.5px] text-faint uppercase">one batch</p>
+          <p id="inl-batch" class="mt-1 font-mono text-[13px]">5.5 s</p>
+          <p id="inl-rows" class="mt-0.5 text-[11.5px] text-muted">reads ~10K rows</p>
+        </div>
+        <div class="rounded-lg border border-line bg-bg p-3">
+          <p class="font-mono text-[9.5px] text-faint uppercase">968K-ID load</p>
+          <p id="inl-total" class="mt-1 font-mono text-[13px]">9 min</p>
+          <p id="inl-batches" class="mt-0.5 text-[11.5px] text-muted">97 batches</p>
+        </div>
+      </div>
+      <p class="mt-3 font-mono text-[9.5px] leading-relaxed text-faint">
+        model calibrated to the real incident: 68K IDs ran as a 38 s range scan; 100K IDs fell back to a 1,750 s scan of a 38M-row
+        table. The costliest query in the follow-up audit hit the limit near 15K, so every lookup was capped at 10K.
+      </p>
+    </div>
+
+    <!-- 2. Member matching -->
+    <div id="pg-matching" role="tabpanel" aria-labelledby="tab-matching" class="pg-panel hidden p-4 sm:p-5">
+      <p class="text-[12.5px] text-muted">Look up a member the way the matcher chain does. Try a preset or type your own.</p>
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        {
+          matchPresets.map((p, i) => (
+            <button type="button" class="mm-preset tag cursor-pointer hover:border-accent hover:text-accent" data-i={i}>
+              {p.label} <span class="text-faint">· {p.hint}</span>
+            </button>
+          ))
+        }
+      </div>
+      <form id="mm-form" class="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_90px_auto]">
+        <input name="memberId" placeholder="member ID" class="pg-input" autocomplete="off" />
+        <input name="name" placeholder="name" class="pg-input" autocomplete="off" />
+        <input name="dob" placeholder="DOB (YYYY-MM-DD)" class="pg-input" autocomplete="off" />
+        <select name="state" class="pg-input">
+          <option>TX</option><option>CA</option><option>NY</option>
+        </select>
+        <button type="submit" class="btn btn-primary justify-center">match</button>
+      </form>
+      <div class="mt-4 grid gap-3 md:grid-cols-[1.2fr_1fr]">
+        <ol id="mm-steps" class="space-y-1.5 rounded-lg border border-line bg-bg p-3 font-mono text-[11px]">
+          <li class="text-faint">results appear here</li>
+        </ol>
+        <div id="mm-result" class="rounded-lg border border-line bg-bg p-3"></div>
+      </div>
+      <details class="mt-3">
+        <summary class="cursor-pointer font-mono text-[10.5px] text-faint">synthetic member table ({members.length} rows)</summary>
+        <div class="mt-2 overflow-x-auto">
+          <table class="w-full font-mono text-[10.5px] text-muted">
+            <thead class="text-faint"><tr><th class="py-1 text-left">member</th><th class="text-left">ID</th><th class="text-left">name</th><th class="text-left">DOB</th><th class="text-left">state</th></tr></thead>
+            <tbody>{members.map((m) => <tr><td class="py-0.5">{m.id}</td><td>{m.memberId}</td><td>{m.name}</td><td>{m.dob}</td><td>{m.state}</td></tr>)}</tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <!-- 3. DQ rules -->
+    <div id="pg-dq" role="tabpanel" aria-labelledby="tab-dq" class="pg-panel hidden p-4 sm:p-5">
+      <p class="text-[12.5px] text-muted">A batch of 8 lab records. Switch critical rules on and off; failing cells light up.</p>
+      <div class="mt-3 flex flex-wrap items-end justify-between gap-4">
+        <div class="space-y-1.5">
+          {
+            dqRules.map((r) => (
+              <label class="flex cursor-pointer items-center gap-2 text-[12.5px]">
+                <input type="checkbox" class="dq-rule pg-check" value={r.id} checked />
+                {r.label}
+              </label>
+            ))
+          }
+        </div>
+        <div class="text-right">
+          <p class="font-mono text-[9.5px] text-faint uppercase">record usability</p>
+          <p class="text-[28px] leading-none font-medium text-accent"><span id="dq-pct">38</span>%</p>
+          <p id="dq-fallout" class="mt-1 font-mono text-[10.5px] text-muted">5 records to fallout</p>
+        </div>
+      </div>
+      <div class="mt-4 overflow-x-auto">
+        <table id="dq-table" class="w-full min-w-[520px] font-mono text-[11px]">
+          <thead class="text-faint">
+            <tr><th class="py-1.5 text-left">patient</th><th class="text-left">member</th><th class="text-left">lab code</th><th class="text-left">value</th><th class="text-left">date of service</th><th class="text-right">status</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 4. Self-healing -->
+    <div id="pg-healing" role="tabpanel" aria-labelledby="tab-healing" class="pg-panel hidden p-4 sm:p-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="text-[12.5px] text-muted">Three stage jobs send heartbeats. Kill one and watch the monitor recover it.</p>
+        <button type="button" id="sh-kill" class="btn shrink-0 border-warn text-warn">✕ kill a job</button>
+      </div>
+      <div class="mt-4 space-y-2.5">
+        {
+          ['ICM · load 1201', 'DQ · load 1202', 'UCM · load 1203'].map((j, i) => (
+            <div class="sh-job flex items-center gap-3 rounded-lg border border-line bg-bg px-3 py-2.5" data-i={i}>
+              <span class="w-[110px] shrink-0 font-mono text-[11px] text-ink">{j}</span>
+              <svg viewBox="0 0 120 20" class="sh-beat h-5 w-[120px] shrink-0" aria-hidden="true">
+                <path d="M0 10 H40 L45 3 L50 17 L55 10 H120" fill="none" stroke="var(--color-line-2)" stroke-width="1" />
+                <path d="M0 10 H40 L45 3 L50 17 L55 10 H120" fill="none" stroke="var(--color-accent)" stroke-width="1.4" class="beat-line" />
+              </svg>
+              <div class="h-1.5 flex-1 rounded-full bg-surface-2"><div class="sh-prog h-full rounded-full bg-accent" style="width: 0%"></div></div>
+              <span class="sh-state w-[86px] shrink-0 text-right font-mono text-[10.5px] text-muted">running</span>
+            </div>
+          ))
+        }
+      </div>
+      <ol id="sh-log" class="mt-3 min-h-[92px] space-y-1 rounded-lg border border-line bg-bg p-3 font-mono text-[10.5px] text-muted">
+        <li class="text-faint">monitor: watching 3 jobs · stuck after 3 silent beats</li>
+      </ol>
+      <p class="mt-2 font-mono text-[9.5px] text-faint">time compressed · before this framework, a stuck job waited for a fixed 72-hour timeout</p>
+    </div>
+  </div>
+</section>
+
+<script type="application/json" id="pg-data" set:html={JSON.stringify(data)} />
+
+<style>
+  .pg-tab { color: var(--color-muted); border-bottom: 2px solid transparent; }
+  .pg-tab:hover { color: var(--color-ink); }
+  .pg-tab[aria-selected='true'] { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+  .pg-input {
+    background: var(--color-bg); border: 1px solid var(--color-line-2); border-radius: 8px;
+    padding: 6px 10px; font-size: 12.5px; color: var(--color-ink); outline: none; min-width: 0;
+  }
+  .pg-input:focus { border-color: var(--color-accent); }
+  .pg-check { accent-color: var(--color-accent); width: 14px; height: 14px; }
+  .pg-range { accent-color: var(--color-accent); }
+  .bg-warn { background: var(--color-warn); }
+  .text-warn { color: var(--color-warn); }
+  .border-warn { border-color: var(--color-warn); }
+  :global(#dq-table td) { padding: 5px 8px 5px 0; border-top: 1px solid var(--color-line); color: var(--color-muted); }
+  :global(#dq-table td.bad) { color: var(--color-warn); }
+  :global(#dq-table td.bad span) { background: rgb(255 138 92 / 0.12); border-radius: 3px; padding: 0 3px; }
+  :global(#dq-table td.ok) { color: var(--color-accent); }
+  .beat-line { stroke-dasharray: 120; animation: beat 1.1s linear infinite; }
+  @keyframes beat { from { stroke-dashoffset: 120; } to { stroke-dashoffset: -120; } }
+  :global(.sh-job.dead .beat-line) { animation: none; stroke: var(--color-faint); opacity: 0.35; }
+  :global(.sh-job.dead) { border-color: var(--color-warn); }
+  :global(.sh-job.dead .sh-state) { color: var(--color-warn); }
+  :global(.sh-job.healing .sh-state) { color: var(--color-accent); }
+  :global(#sh-log .w) { color: var(--color-warn); }
+  :global(#sh-log .a) { color: var(--color-accent); }
+</style>
+
+<script>
+  const D = JSON.parse(document.getElementById('pg-data')!.textContent!);
+  const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
+  const fmt = (n: number) => n.toLocaleString('en-US');
+  const dur = (s: number) => (s < 60 ? `${s.toFixed(1)} s` : s < 3600 ? `${Math.round(s / 60)} min` : `${(s / 3600).toFixed(1)} hrs`);
+
+  // ---------- tabs ----------
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('.pg-tab')];
+  const show = (id: string) => {
+    tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === id)));
+    document.querySelectorAll('.pg-panel').forEach((p) => p.classList.toggle('hidden', p.id !== `pg-${id}`));
+  };
+  tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.tab!)));
+  (window as any).openPlayground = (id: string) => {
+    show(id);
+    document.getElementById('playground')!.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // ---------- 1. IN-list ----------
+  const L = D.inList;
+  const range = $<HTMLInputElement>('#inl-range');
+  const toN = (v: number) => {
+    const raw = 1000 * Math.pow(100, v / 1000);
+    const step = raw < 10000 ? 500 : raw < 50000 ? 1000 : 5000;
+    return Math.round(raw / step) * step;
+  };
+  const updateInList = () => {
+    const n = toN(+range.value);
+    const mem = n * L.bytesPerValue;
+    const full = mem > L.limitBytes;
+    const batchSec = full ? L.fullScanSec : (n * L.rangeMsPerId) / 1000;
+    const batches = Math.ceil(L.totalIds / n);
+    $('#inl-n').textContent = fmt(n);
+    $('#inl-mem').textContent = `${(mem / 1048576).toFixed(1)} MB / 8 MB`;
+    const bar = $('#inl-bar');
+    bar.style.width = `${Math.min(mem / (L.limitBytes * 1.6), 1) * 100}%`;
+    bar.classList.toggle('bg-warn', full);
+    bar.classList.toggle('bg-accent', !full);
+    $('#inl-plan').textContent = full ? 'type: ALL' : 'type: range';
+    $('#inl-plan').className = `mt-1 font-mono text-[13px] ${full ? 'text-warn' : 'text-accent'}`;
+    $('#inl-plan-note').textContent = full ? 'index dropped, full table scan' : 'index range scan';
+    $('#inl-batch').textContent = dur(batchSec);
+    $('#inl-rows').textContent = full ? 'reads all ~38M rows' : `reads ~${fmt(n)} rows`;
+    $('#inl-total').textContent = dur(batchSec * batches);
+    $('#inl-total').className = `mt-1 font-mono text-[13px] ${full ? 'text-warn' : 'text-ink'}`;
+    $('#inl-batches').textContent = `${fmt(batches)} batches`;
+  };
+  range.addEventListener('input', updateInList);
+  updateInList();
+
+  // ---------- 2. Member matching ----------
+  type M = { id: string; memberId: string; name: string; dob: string; state: string };
+  const members: M[] = D.members;
+  const form = $<HTMLFormElement>('#mm-form');
+  const stepsEl = $('#mm-steps'), resultEl = $('#mm-result');
+  const strip = (s: string) => s.replace(/^0+/, '');
+  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+  const match = (q: { memberId: string; name: string; dob: string; state: string }) => {
+    const steps: [string, 'ok' | 'no' | 'skip', string][] = [];
+    const pool = members.filter((m) => m.state === q.state);
+    steps.push([`state scope · ${q.state}`, 'ok', `${pool.length} candidate members`]);
+    let hit: M[] = [], tier = '';
+    const id = q.memberId.trim();
+    if (id) {
+      hit = pool.filter((m) => m.memberId === id);
+      steps.push(['exact ID', hit.length === 1 ? 'ok' : 'no', hit.length === 1 ? `${id} → unique` : hit.length ? `${hit.length} matches, not unique` : `${id} not found`]);
+      if (hit.length === 1) tier = 'exact ID';
+      else {
+        hit = pool.filter((m) => strip(m.memberId) === strip(id));
+        steps.push(['padded / trimmed IDs', hit.length === 1 ? 'ok' : 'no', hit.length === 1 ? `${strip(id)} ≡ ${hit[0].memberId}` : hit.length ? `${hit.length} matches, not unique` : 'no variant matches']);
+        if (hit.length === 1) tier = 'ID · leading zeros';
+      }
+    } else steps.push(['ID tiers', 'skip', 'no ID on the record']);
+    if (!tier) {
+      if (q.name.trim() && q.dob.trim()) {
+        hit = pool.filter((m) => norm(m.name) === norm(q.name) && m.dob === q.dob.trim());
+        steps.push(['name + DOB', hit.length === 1 ? 'ok' : 'no', hit.length === 1 ? 'unique demographic match' : hit.length ? `${hit.length} candidates, not unique` : 'no member with that name and DOB']);
+        if (hit.length === 1) tier = 'name + DOB';
+      } else steps.push(['name + DOB', 'skip', 'needs both name and DOB']);
+    }
+    const icon = { ok: '✓', no: '✕', skip: '–' };
+    const cls = { ok: 'text-accent', no: 'text-warn', skip: 'text-faint' };
+    stepsEl.innerHTML = steps
+      .map(([t, s, d]) => `<li class="flex gap-2"><span class="${cls[s]}">${icon[s]}</span><span><span class="text-ink">${esc(t)}</span> <span class="text-faint">· ${esc(d)}</span></span></li>`)
+      .join('');
+    resultEl.innerHTML = tier
+      ? `<p class="font-mono text-[9.5px] text-faint uppercase">matched</p><p class="mt-1 text-[18px] font-medium text-accent">${hit[0].id}</p><p class="mt-1 text-[12px] text-muted">${esc(hit[0].name)} · ${hit[0].state}</p><p class="mt-2 font-mono text-[10.5px] text-faint">matched on: ${tier}</p>`
+      : `<p class="font-mono text-[9.5px] text-faint uppercase">no unique match</p><p class="mt-1 text-[16px] font-medium text-warn">member-match fallout</p><p class="mt-1 text-[12px] text-muted">The record goes to its own fallout report, so it doesn't distort other DQ counts.</p>`;
+  };
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = new FormData(form);
+    match({ memberId: String(f.get('memberId')), name: String(f.get('name')), dob: String(f.get('dob')), state: String(f.get('state')) });
+  });
+  document.querySelectorAll<HTMLButtonElement>('.mm-preset').forEach((b) =>
+    b.addEventListener('click', () => {
+      const p = (window as any).__mmPresets[+b.dataset.i!];
+      (form.elements.namedItem('memberId') as HTMLInputElement).value = p.memberId;
+      (form.elements.namedItem('name') as HTMLInputElement).value = p.name;
+      (form.elements.namedItem('dob') as HTMLInputElement).value = p.dob;
+      (form.elements.namedItem('state') as HTMLSelectElement).value = p.state;
+      match(p);
+    }),
+  );
+
+  // ---------- 3. DQ rules ----------
+  type R = { name: string; member: string; code: string; value: string; dos: string };
+  const batch: R[] = D.dqBatch;
+  const fails: Record<string, (r: R) => boolean> = {
+    member: (r) => !r.member,
+    code: (r) => !r.code || D.garbageCodes.includes(r.code),
+    value: (r) => !!r.code && !D.garbageCodes.includes(r.code) && !r.value,
+    dos: (r) => !r.dos || r.dos > D.today,
+  };
+  const cellOf: Record<string, keyof R> = { member: 'member', code: 'code', value: 'value', dos: 'dos' };
+  const tbody = $('#dq-table tbody');
+  const updateDq = () => {
+    const on = [...document.querySelectorAll<HTMLInputElement>('.dq-rule:checked')].map((c) => c.value);
+    let usable = 0;
+    tbody.innerHTML = batch
+      .map((r) => {
+        const bad = new Set(on.filter((id) => fails[id](r)).map((id) => cellOf[id]));
+        if (!bad.size) usable++;
+        const td = (k: keyof R) => `<td class="${bad.has(k) ? 'bad' : ''}"><span>${esc(r[k] || '∅')}</span></td>`;
+        return `<tr><td class="text-ink">${esc(r.name)}</td>${td('member')}${td('code')}${td('value')}${td('dos')}<td class="text-right ${bad.size ? 'bad' : 'ok'}">${bad.size ? `fallout · ${bad.size}` : 'usable'}</td></tr>`;
+      })
+      .join('');
+    $('#dq-pct').textContent = String(Math.round((usable / batch.length) * 100));
+    const out = batch.length - usable;
+    $('#dq-fallout').textContent = out ? `${out} record${out === 1 ? '' : 's'} to fallout` : 'nothing to fallout';
+  };
+  document.querySelectorAll('.dq-rule').forEach((c) => c.addEventListener('change', updateDq));
+  updateDq();
+
+  // ---------- 4. Self-healing ----------
+  const jobs = [...document.querySelectorAll<HTMLElement>('.sh-job')];
+  const log = $('#sh-log');
+  const progress = [8, 35, 62];
+  let dead = -1, silent = 0, busy = false;
+  const say = (msg: string, cls = '') => {
+    const li = document.createElement('li');
+    li.className = cls;
+    li.textContent = msg;
+    log.appendChild(li);
+    while (log.children.length > 6) log.firstElementChild!.remove();
+  };
+  const setState = (i: number, text: string, cls = '') => {
+    jobs[i].classList.remove('dead', 'healing');
+    if (cls) jobs[i].classList.add(cls);
+    jobs[i].querySelector('.sh-state')!.textContent = text;
+  };
+  setInterval(() => {
+    jobs.forEach((j, i) => {
+      if (i === dead) return;
+      progress[i] = progress[i] >= 100 ? 4 : progress[i] + 1.2 + i * 0.3;
+      j.querySelector<HTMLElement>('.sh-prog')!.style.width = `${Math.min(progress[i], 100)}%`;
+    });
+    if (dead >= 0) {
+      silent++;
+      if (silent <= 3) setState(dead, `silent ${silent}…`, 'dead');
+      if (silent === 3) say(`monitor: job ${dead + 1} missed 3 heartbeats → marked stuck`, 'w');
+      if (silent === 4) { setState(dead, 'retrying', 'healing'); say(`self-healing: released lock · retry #1 from its last stage`, 'a'); }
+      if (silent === 6) {
+        say(`job ${dead + 1} recovered in ~6 beats (before: up to 72 hrs)`, 'a');
+        setState(dead, 'running');
+        dead = -1; busy = false;
+        $<HTMLButtonElement>('#sh-kill').disabled = false;
+      }
+    }
+  }, 600);
+  $('#sh-kill').addEventListener('click', (e) => {
+    if (busy) return;
+    busy = true; silent = 0; dead = 1;
+    (e.currentTarget as HTMLButtonElement).disabled = true;
+    say('✕ job 2 (DQ · load 1202) killed: heartbeat stopped', 'w');
+    setState(dead, 'silent…', 'dead');
+  });
+</script>
+
+<script define:vars={{ matchPresets }}>
+  window.__mmPresets = matchPresets;
+</script>

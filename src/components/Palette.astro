@@ -6,11 +6,12 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 type Cmd = { label: string; group: string; hint?: string; action: string; arg?: string };
 const sections: [string, string][] = [
   ['top', 'Start'], ['about', 'About'], ['experience', 'Experience'], ['work', 'Selected work'],
-  ['projects', 'Projects'], ['toolkit', 'Toolkit'], ['contact', 'Contact'],
+  ['playground', 'Playground'], ['projects', 'Projects'], ['toolkit', 'Toolkit'], ['contact', 'Contact'],
 ];
 const commands: Cmd[] = [
   ...sections.map(([id, label]) => ({ label, group: 'go to', action: 'goto', arg: id })),
   ...caseStudies.map((c) => ({ label: `${c.title} architecture`, group: 'case study', action: 'case', arg: c.id })),
+  { label: 'Take the 30-second tour', group: 'demo', action: 'tour' },
   { label: 'Process a record', group: 'demo', action: 'sim', arg: 'good' },
   { label: 'Try a broken record', group: 'demo', action: 'sim', arg: 'bad' },
   { label: 'Copy email', group: 'contact', hint: profile.email, action: 'copy', arg: profile.email },
@@ -171,6 +172,7 @@ const shortcuts: [string, string][] = [
     if (action === 'copy') navigator.clipboard?.writeText(arg!).then(() => toast('email copied ✓'));
     if (action === 'url') window.open(arg, '_blank', 'noopener');
     if (action === 'help') help.showModal();
+    if (action === 'tour') (window as any).startTour?.();
   };
 
   input.addEventListener('input', filter);

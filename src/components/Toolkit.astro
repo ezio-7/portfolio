@@ -4,15 +4,18 @@ import { skills, education, achievements } from '../data/profile';
 ---
 
 <section id="toolkit" class="py-16">
-  <SectionHead idx="05" name="toolkit" title="Skills, education and achievements" />
+  <SectionHead idx="06" name="toolkit" title="Skills, education and achievements" />
 
+  <p class="-mt-3 mb-4 text-[12.5px] text-muted">Click any skill to see everywhere I've used it.</p>
   <div class="reveal card divide-y divide-line">
     {
       skills.map((s) => (
         <div class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center">
           <p class="w-36 shrink-0 font-mono text-[10.5px] tracking-wide text-faint uppercase">{s.group}</p>
           <div class="flex flex-wrap gap-1.5">
-            {s.items.map((i) => <span class="tag text-ink/90">{i}</span>)}
+            {s.items.map((i) => (
+              <button type="button" class="tag skill-btn text-ink/90" data-skill={i} aria-pressed="false">{i}</button>
+            ))}
           </div>
         </div>
       ))
@@ -41,3 +44,116 @@ import { skills, education, achievements } from '../data/profile';
     </div>
   </div>
 </section>
+
+<div id="skill-bar" class="pointer-events-none" role="status" aria-live="polite">
+  <span class="sb-text"></span>
+  <button type="button" class="sb-next">next ↓</button>
+  <button type="button" class="sb-clear" aria-label="Clear skill filter">clear ✕</button>
+</div>
+
+<style>
+  .skill-btn { cursor: pointer; transition: all 0.15s; }
+  .skill-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .skill-btn[aria-pressed='true'] { background: var(--color-accent); border-color: var(--color-accent); color: #0b0c0e; }
+  /* filter mode: dim everything that isn't a hit */
+  :global(html.sk-on [data-skills]:not(.sk-hit)),
+  :global(html.sk-on .pt:not(.sk-hit)) { opacity: 0.22; transition: opacity 0.25s; }
+  :global(html.sk-on .sk-hit[data-skills]) { border-color: var(--color-accent) !important; box-shadow: 0 0 0 1px var(--color-accent), 0 0 18px rgb(196 240 77 / 0.15); }
+  :global(html.sk-on .pt.sk-hit) { color: var(--color-ink); }
+  :global(html.sk-on .pt.sk-hit mark) { background: var(--color-accent-dim); color: var(--color-accent); border-radius: 3px; padding: 0 2px; }
+  #skill-bar {
+    position: fixed; left: 50%; bottom: 20px; z-index: 80;
+    display: flex; align-items: center; gap: 10px;
+    transform: translate(-50%, 16px); opacity: 0;
+    background: #15181c; border: 1px solid var(--color-line-2); border-radius: 999px;
+    padding: 6px 8px 6px 14px; font-family: var(--font-mono); font-size: 11px;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  #skill-bar.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  #skill-bar b { color: var(--color-accent); font-weight: 500; }
+  #skill-bar button { border: 1px solid var(--color-line-2); border-radius: 999px; padding: 2px 9px; color: var(--color-muted); }
+  #skill-bar button:hover { color: var(--color-accent); border-color: var(--color-accent); }
+</style>
+
+<script>
+  // Regex per skill: catches aliases and avoids false hits (Java ≠ JavaScript)
+  const special: Record<string, RegExp> = {
+    Java: /\bjava\b(?!script)/i,
+    SQL: /\bsql\b|mysql|postgresql|postgres/i,
+    PostgreSQL: /postgresql|postgres/i,
+    'Spring Boot': /spring/i,
+    Kubernetes: /kubernetes|\baks\b/i,
+    AWS: /\baws\b|\bs3\b|\brds\b/i,
+    'CI/CD': /ci\/cd|azure devops/i,
+    'Node.js': /node\.?js/i,
+    'C++': /c\+\+/i,
+    Git: /\bgit\b/i,
+  };
+  const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const rx = (skill: string) => special[skill] ?? new RegExp(`\\b${esc(skill)}\\b`, 'i');
+
+  const bar = document.getElementById('skill-bar')!;
+  const text = bar.querySelector('.sb-text')!;
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>('.skill-btn')];
+  let hits: HTMLElement[] = [], cursor = -1, active = '';
+
+  const clear = () => {
+    document.documentElement.classList.remove('sk-on');
+    document.querySelectorAll('.sk-hit').forEach((el) => el.classList.remove('sk-hit'));
+    document.querySelectorAll('.pt mark').forEach((m) => m.replaceWith(m.textContent!));
+    buttons.forEach((b) => b.setAttribute('aria-pressed', 'false'));
+    bar.classList.remove('on');
+    active = ''; hits = []; cursor = -1;
+  };
+
+  const apply = (skill: string) => {
+    clear();
+    active = skill;
+    const r = rx(skill);
+    const found: HTMLElement[] = [];
+    document.querySelectorAll<HTMLElement>('[data-skills]').forEach((el) => {
+      if (el.dataset.skills!.split('|').some((s) => r.test(s))) { el.classList.add('sk-hit'); found.push(el); }
+    });
+    document.querySelectorAll<HTMLElement>('.pt').forEach((li) => {
+      const node = [...li.childNodes].find((n) => n.nodeType === 3 && r.test(n.textContent!));
+      if (!node) return;
+      li.classList.add('sk-hit');
+      const m = node.textContent!.match(r)!;
+      const i = node.textContent!.indexOf(m[0]);
+      const mark = document.createElement('mark');
+      const after = (node as Text).splitText(i);
+      after.splitText(m[0].length);
+      mark.textContent = after.textContent;
+      after.replaceWith(mark);
+      const block = li.closest<HTMLDetailsElement>('details');
+      if (block) { block.open = true; block.classList.add('sk-hit'); }
+      found.push(li);
+    });
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.skill === skill)));
+    document.documentElement.classList.add('sk-on');
+    hits = found.filter((el) => !found.some((o) => o !== el && o.contains(el)) || el.matches('.pt'))
+      .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+    const places = new Set(found.map((el) => el.closest('[data-skills]') ?? el)).size;
+    text.innerHTML = places
+      ? `<b>${skill}</b> · used in ${places} place${places === 1 ? '' : 's'}`
+      : `<b>${skill}</b> · in my toolkit, not featured on this page`;
+    (bar.querySelector('.sb-next') as HTMLElement).hidden = !hits.length;
+    bar.classList.add('on');
+    if (hits.length) next();
+  };
+
+  const next = () => {
+    if (!hits.length) return;
+    cursor = (cursor + 1) % hits.length;
+    hits[cursor].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  buttons.forEach((b) => b.addEventListener('click', () => (active === b.dataset.skill ? clear() : apply(b.dataset.skill!))));
+  bar.querySelector('.sb-next')!.addEventListener('click', next);
+  bar.querySelector('.sb-clear')!.addEventListener('click', () => {
+    clear();
+    document.getElementById('toolkit')?.scrollIntoView({ behavior: 'smooth' });
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && active) clear(); });
+  (window as any).filterSkill = apply;
+</script>
