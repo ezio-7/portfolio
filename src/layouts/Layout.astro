@@ -46,18 +46,12 @@ const person = {
     <meta name="twitter:image" content={new URL(`${base}og.png`, Astro.site)} />
     <meta name="theme-color" content="#08090b" />
     <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
     <!-- GoatCounter analytics: anonymous page views, dashboard at ayushanand.goatcounter.com -->
     <script is:inline data-goatcounter="https://ayushanand.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
   </head>
   <body>
     <slot />
-    <div id="tip" role="tooltip"></div>
+    <div id="tip" aria-hidden="true"></div>
     <script>
       // Shared tooltip for any element with data-tip (diagram nodes, pipeline stages)
       const tip = document.getElementById('tip')!;

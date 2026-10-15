@@ -1,0 +1,37 @@
+---
+import Layout from '../layouts/Layout.astro';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const stages = ['request', 'route', 'lookup', 'page'];
+---
+
+<Layout>
+  <main class="mx-auto flex min-h-screen max-w-[760px] flex-col justify-center px-5 py-20">
+    <p class="stage-label"><b>404</b> / fallout</p>
+    <h1 class="mt-2 text-[26px] font-semibold tracking-tight">This record fell out of the pipeline.</h1>
+    <p class="mt-2 max-w-[460px] text-[14px] text-muted">
+      The page you asked for doesn't exist. It may have moved, or the link has a typo.
+    </p>
+
+    <div class="mt-8 max-w-[460px]" aria-hidden="true">
+      <svg viewBox="0 0 460 40" class="w-full overflow-visible">
+        <path d="M6 20 H454" stroke="var(--color-line-2)" />
+        <path d="M6 20 H300" stroke="var(--color-accent)" stroke-width="1.4" class="flow" opacity="0.6" />
+        {
+          stages.map((s, i) => (
+            <g transform={`translate(${6 + i * 149.3} 20)`}>
+              <circle r="4" fill={i < 3 ? 'var(--color-accent)' : 'var(--color-bg)'} stroke={i < 3 ? 'var(--color-accent)' : 'var(--color-warn)'} />
+              <text y="-11" text-anchor={i === 0 ? 'start' : i === 3 ? 'end' : 'middle'} class="fill-faint font-mono" font-size="10">{s}</text>
+              {i === 3 && <text y="20" text-anchor="end" class="font-mono" font-size="10" fill="var(--color-warn)">not found ✕</text>}
+            </g>
+          ))
+        }
+      </svg>
+    </div>
+
+    <div class="mt-10 flex flex-wrap gap-2">
+      <a class="btn btn-primary" href={base}>← back to the portfolio</a>
+      <a class="btn" href={`${base}#work`}>selected work</a>
+      <a class="btn" href={`${base}#contact`}>contact</a>
+    </div>
+  </main>
+</Layout>

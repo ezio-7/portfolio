@@ -1,8 +1,11 @@
 @import 'tailwindcss';
+/* Self-hosted fonts: no render-blocking request to Google Fonts */
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
 
 @theme {
-  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --color-bg: #08090b;
   --color-surface: #0e1013;
@@ -10,8 +13,8 @@
   --color-line: #1d2127;
   --color-line-2: #2a2f37;
   --color-ink: #e4e6ea;
-  --color-muted: #8a9099;
-  --color-faint: #5a616b;
+  --color-muted: #9aa0a8;
+  --color-faint: #7a818b; /* ≥4.5:1 on every surface */
   --color-accent: #c4f04d;
   --color-accent-dim: rgb(196 240 77 / 0.12);
   --color-warn: #ff8a5c;

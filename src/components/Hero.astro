@@ -11,10 +11,11 @@ const snapshot = [h.target, h.experience, h.location, h.notice && `Notice: ${h.n
   <div class="flex items-center gap-4">
     <div class="relative shrink-0">
       <img
-        src={`${base}${profile.avatar}`}
+        src={`${base}avatar-176.webp`}
         alt={profile.name}
         width="88"
         height="88"
+        fetchpriority="high"
         class="avatar h-[72px] w-[72px] rounded-full object-cover sm:h-[88px] sm:w-[88px]"
       />
       <span class="absolute right-0.5 bottom-0.5 h-3 w-3 rounded-full border-2 border-bg bg-accent"></span>
