@@ -146,14 +146,14 @@ const scoreText = (text: string, sig: JdSignal) => {
 
 // ---------- tailor (.tex in, .tex out; only reorders, trims and appends) ----------
 export type TailorOpts = { trim: boolean; summary: boolean };
-export type TailorResult = { tex: string; matched: string[]; gaps: string[]; score: number };
+export type TailorResult = { tex: string; matched: string[]; gaps: string[]; score: number; proofs: string[] };
 
 export const tailor = (tex: string, jd: string, opts: TailorOpts): TailorResult => {
   const sig = readJd(jd);
   const matched = sig.skills.filter((s) => s.have).map((s) => s.name);
   const gaps = sig.skills.filter((s) => !s.have).map((s) => s.name);
   const score = sig.skills.length ? Math.round((matched.length / sig.skills.length) * 100) : 0;
-  if (!jd.trim()) return { tex, matched, gaps, score };
+  if (!jd.trim()) return { tex, matched, gaps, score, proofs: [] };
 
   const lines = tex.split('\n');
   // bullets with a bolded metric (220×, $94K, 43M+…) are proof points: never trim them
@@ -174,6 +174,11 @@ export const tailor = (tex: string, jd: string, opts: TailorOpts): TailorResult 
     out.splice(idx[0], 0, ...kept.map((k) => k.line));
     return out;
   };
+
+  // strongest bullets for this JD (metric bullets preferred), used in cover letters and notes
+  const proofs = lines.filter(isItem).map((l) => ({ l, s: itemScore(l) }))
+    .filter((x) => /\\textbf\{[^}]*\d/.test(x.l)).sort((a, b) => b.s - a.s).slice(0, 3)
+    .map((x) => texToText(args(x.l.trim(), '\\resumeItem')[0]).replace(/\u00a0/g, ' ').replace(/∼/g, '~'));
 
   const out: string[] = [];
   let section = '';
@@ -233,7 +238,7 @@ export const tailor = (tex: string, jd: string, opts: TailorOpts): TailorResult 
 
     out.push(line);
   }
-  return { tex: out.join('\n').replace(/\n{3,}/g, '\n\n'), matched, gaps, score };
+  return { tex: out.join('\n').replace(/\n{3,}/g, '\n\n'), matched, gaps, score, proofs };
 };
 const list = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`).replace(/&/g, '\\&');
 
@@ -255,3 +260,22 @@ My résumé (.tex):
 \`\`\`latex
 ${tex}
 \`\`\``;
+
+// ---------- ATS keyword check ----------
+/** JD terms (known skills + repeated words) that don't appear anywhere in the résumé text */
+export const atsMissing = (jd: string, tex: string): { term: string; skill: boolean }[] => {
+  const text = texToText(tex).toLowerCase();
+  const sig = readJd(jd);
+  const missing: { term: string; skill: boolean; n: number }[] = [];
+  for (const k of sig.skills) if (!k.re.test(text)) missing.push({ term: k.name, skill: true, n: 10 + k.weight });
+  const counts = new Map<string, number>();
+  for (const raw of jd.toLowerCase().match(/[a-z][a-z+#.-]{4,}/g) ?? []) {
+    const w = raw.replace(/[.-]+$/, '');
+    if (w.length >= 5 && !STOP.has(w)) counts.set(w, (counts.get(w) ?? 0) + 1);
+  }
+  for (const [w, n] of counts) {
+    const stem = w.replace(/(ing|ed|es|s)$/, '');
+    if (stem.length >= 4 && !text.includes(stem) && !missing.some((m) => m.term.toLowerCase() === w)) missing.push({ term: w, skill: false, n });
+  }
+  return missing.sort((a, b) => b.n - a.n).slice(0, 18).map(({ term, skill }) => ({ term, skill }));
+};

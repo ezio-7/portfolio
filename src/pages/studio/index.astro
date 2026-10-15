@@ -1,6 +1,7 @@
 ---
-// Unlisted résumé studio: paste a JD → tailored résumé (PDF / .tex) + a ready prompt for Claude.
-// Not linked anywhere, excluded from the sitemap, no-index, and no analytics.
+// Unlisted job-search studio: tailor the résumé to a JD (PDF / .tex / Claude prompt), write outreach
+// messages, and track applications with per-company portfolio links.
+// Not linked anywhere, excluded from the sitemap, no-index, and no analytics. Data stays in this browser.
 import '../../styles/global.css';
 import resumeTex from '../../data/resume.tex?raw';
 import cmRoman from 'computer-modern/fonts/cmu-serif-500-roman.woff2?url';
@@ -16,6 +17,12 @@ const fontCss = `
 @font-face { font-family: 'CMU Serif'; font-style: normal; font-weight: 700; src: url(${cmBold}) format('woff2'); }
 @font-face { font-family: 'CMU Serif'; font-style: italic; font-weight: 700; src: url(${cmBoldItalic}) format('woff2'); }
 @font-face { font-family: 'CMU Typewriter'; font-style: normal; font-weight: 400; src: url(${cmMono}) format('woff2'); }`;
+const tabs = [
+  ['tailor', 'Tailor'],
+  ['messages', 'Messages'],
+  ['apps', 'Applications'],
+  ['settings', 'Settings'],
+];
 ---
 
 <!doctype html>
@@ -30,44 +37,107 @@ const fontCss = `
   </head>
   <body>
     <div class="ui flex min-h-screen flex-col">
-      <header class="flex items-center justify-between border-b border-line px-5 py-3">
-        <p class="stage-label"><b>studio</b> / résumé tailoring · unlisted, not tracked</p>
+      <header class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
+        <div class="flex flex-wrap items-center gap-4">
+          <p class="stage-label"><b>studio</b> / unlisted · not tracked</p>
+          <nav class="flex gap-1" role="tablist">
+            {tabs.map(([id, label], i) => (
+              <button type="button" role="tab" class="st-tab rounded-full px-3 py-1 text-[12px]" data-tab={id} aria-selected={i === 0 ? 'true' : 'false'}>{label}</button>
+            ))}
+          </nav>
+        </div>
         <a href={base} class="font-mono text-[11px] text-faint hover:text-accent">← portfolio</a>
       </header>
 
-      <div class="grid flex-1 gap-5 p-5 lg:grid-cols-[400px_1fr]">
-        <aside class="space-y-4 lg:sticky lg:top-5 lg:h-fit">
-          <div>
-            <label for="jd" class="stage-label">job description</label>
-            <textarea id="jd" rows="12" placeholder="Paste the job description here…"
-              class="mt-2 w-full resize-y rounded-lg border border-line-2 bg-surface p-3 text-[12.5px] text-ink outline-none focus:border-accent"></textarea>
+      <div class="grid flex-1 gap-5 p-5 lg:grid-cols-[420px_1fr]">
+        <aside class="space-y-4 lg:sticky lg:top-5 lg:h-fit lg:max-h-[calc(100vh-90px)] lg:overflow-y-auto lg:pr-1">
+          <!-- shared: which application this is for -->
+          <div class="grid grid-cols-2 gap-2">
+            <input id="company" placeholder="company" class="st-input" autocomplete="off" />
+            <input id="role" placeholder="role, e.g. SDE-2 Backend" class="st-input" autocomplete="off" />
           </div>
+          <p class="font-mono text-[10.5px] text-faint">portfolio link: <span id="ref-link" class="text-accent"></span> <button type="button" id="copy-ref" class="ml-1 hover:text-accent">copy</button></p>
 
-          <div class="space-y-1.5 text-[12.5px]">
-            <label class="flex items-center gap-2"><input type="checkbox" id="opt-trim" checked class="accent-[var(--color-accent)]" /> trim bullets that don't match</label>
-            <label class="flex items-center gap-2"><input type="checkbox" id="opt-summary" checked class="accent-[var(--color-accent)]" /> name matched strengths in the summary</label>
-          </div>
+          <!-- TAILOR -->
+          <section data-panel="tailor" class="space-y-4">
+            <div>
+              <label for="jd" class="stage-label">job description</label>
+              <textarea id="jd" rows="10" placeholder="Paste the job description here…" class="st-input mt-2 w-full resize-y"></textarea>
+            </div>
+            <div class="space-y-1.5 text-[12.5px]">
+              <label class="flex items-center gap-2"><input type="checkbox" id="opt-trim" checked class="accent-[var(--color-accent)]" /> trim bullets that don't match</label>
+              <label class="flex items-center gap-2"><input type="checkbox" id="opt-summary" checked class="accent-[var(--color-accent)]" /> name matched strengths in the summary</label>
+            </div>
+            <div id="result" class="hidden space-y-2 rounded-lg border border-line bg-surface p-3">
+              <p class="text-[18px] font-medium text-accent"><span id="r-score">0</span>% match</p>
+              <div><p class="stage-label">matched</p><p id="r-matched" class="mt-1 text-[12px] text-ink/90"></p></div>
+              <div><p class="stage-label">gaps</p><p id="r-gaps" class="mt-1 text-[12px] text-warn-ui"></p></div>
+              <div>
+                <p class="stage-label">ats · jd words not in your résumé</p>
+                <div id="r-ats" class="mt-1.5 flex flex-wrap gap-1"></div>
+                <p class="mt-1.5 font-mono text-[9.5px] text-faint">orange = a skill you don't list · grey = a word to weave in honestly, or raise in the interview</p>
+              </div>
+            </div>
+            <p id="pages" class="font-mono text-[11px] text-faint"></p>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" id="dl-pdf" class="btn btn-primary">Download PDF</button>
+              <button type="button" id="dl-tex" class="btn">Download .tex</button>
+              <button type="button" id="copy-prompt" class="btn">Copy prompt for Claude</button>
+              <button type="button" id="save-app" class="btn">Save to applications</button>
+            </div>
+            <p class="font-mono text-[10px] leading-relaxed text-faint">
+              PDF opens the print dialog: choose “Save as PDF”, A4, default margins, headers and footers off.
+              Tailoring only reorders and trims your own bullets; it never writes new claims.
+            </p>
+          </section>
 
-          <div id="result" class="hidden rounded-lg border border-line bg-surface p-3">
-            <p class="text-[18px] font-medium text-accent"><span id="r-score">0</span>% match</p>
-            <p class="mt-2 stage-label">matched</p>
-            <p id="r-matched" class="mt-1 text-[12px] text-ink/90"></p>
-            <p class="mt-2 stage-label">gaps</p>
-            <p id="r-gaps" class="mt-1 text-[12px] text-warn-ui"></p>
-          </div>
+          <!-- MESSAGES -->
+          <section data-panel="messages" class="hidden space-y-3">
+            <p class="text-[12px] text-muted">Built from the JD on the Tailor tab, your matched strengths and your strongest proof points.</p>
+            <div class="flex gap-1 rounded-full border border-line-2 p-0.5 font-mono text-[11px] w-fit" role="group">
+              <button type="button" class="msg-kind rounded-full px-3 py-1" data-kind="cover" aria-pressed="true">cover letter</button>
+              <button type="button" class="msg-kind rounded-full px-3 py-1" data-kind="linkedin" aria-pressed="false">LinkedIn note</button>
+              <button type="button" class="msg-kind rounded-full px-3 py-1" data-kind="referral" aria-pressed="false">referral ask</button>
+            </div>
+            <input id="person" placeholder="recipient's name (optional)" class="st-input w-full" autocomplete="off" />
+            <textarea id="msg-out" rows="14" class="st-input w-full resize-y font-mono text-[11.5px] leading-relaxed"></textarea>
+            <p id="msg-count" class="font-mono text-[10.5px] text-faint"></p>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" id="msg-copy" class="btn btn-primary">Copy</button>
+              <button type="button" id="msg-prompt" class="btn">Copy prompt for Claude</button>
+            </div>
+          </section>
 
-          <p id="pages" class="font-mono text-[11px] text-faint"></p>
+          <!-- APPLICATIONS -->
+          <section data-panel="apps" class="hidden space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <p class="text-[12px] text-muted"><span id="app-count">0</span> saved · stored in this browser only</p>
+              <div class="flex gap-1.5">
+                <button type="button" id="refresh" class="btn px-2.5 py-1 text-[11.5px]">↻ who opened it</button>
+                <button type="button" id="export" class="btn px-2.5 py-1 text-[11.5px]">export</button>
+                <label class="btn cursor-pointer px-2.5 py-1 text-[11.5px]">import<input id="import" type="file" accept="application/json" class="hidden" /></label>
+              </div>
+            </div>
+            <p id="insight-msg" class="font-mono text-[10.5px] text-faint"></p>
+            <ul id="app-list" class="space-y-2"></ul>
+          </section>
 
-          <div class="flex flex-wrap gap-2">
-            <button type="button" id="dl-pdf" class="btn btn-primary">Download PDF</button>
-            <button type="button" id="dl-tex" class="btn">Download .tex</button>
-            <button type="button" id="copy-prompt" class="btn">Copy prompt for Claude</button>
-          </div>
-          <p class="font-mono text-[10px] leading-relaxed text-faint">
-            PDF opens the print dialog: choose “Save as PDF”, paper A4, margins default, and turn off headers and footers.
-            The tailoring only reorders and trims your own bullets; it never writes new claims.
-          </p>
-          <p id="msg" class="font-mono text-[11px] text-accent"></p>
+          <!-- SETTINGS -->
+          <section data-panel="settings" class="hidden space-y-3 text-[12.5px]">
+            <p class="stage-label">goatcounter api key</p>
+            <p class="text-muted">Lets the Applications tab show who opened your portfolio. In GoatCounter: <b>Settings → API → New API key</b>, tick only <b>“Read statistics”</b>, then paste it here.</p>
+            <input id="gc-token" type="password" placeholder="paste API key" class="st-input w-full" autocomplete="off" />
+            <div class="flex gap-2">
+              <button type="button" id="gc-save" class="btn btn-primary">Save key</button>
+              <button type="button" id="gc-clear" class="btn">Remove key</button>
+            </div>
+            <p class="font-mono text-[10.5px] leading-relaxed text-faint">
+              The key is saved in this browser's local storage, never in the code or the repo. It can only read stats.
+              Applications are stored the same way, so use “export” now and then as a backup.
+            </p>
+          </section>
+
+          <p id="flash" class="font-mono text-[11px] text-accent"></p>
         </aside>
 
         <section class="overflow-x-auto">
@@ -80,6 +150,23 @@ const fontCss = `
 
     <style is:global>
       .text-warn-ui { color: var(--color-warn); }
+      .st-input {
+        background: var(--color-surface); border: 1px solid var(--color-line-2); border-radius: 8px;
+        padding: 7px 10px; font-size: 12.5px; color: var(--color-ink); outline: none; min-width: 0;
+      }
+      .st-input:focus { border-color: var(--color-accent); }
+      .st-tab { color: var(--color-muted); }
+      .st-tab:hover { color: var(--color-ink); }
+      .st-tab[aria-selected='true'] { background: var(--color-accent); color: var(--color-on-accent); }
+      .msg-kind { color: var(--color-muted); }
+      .msg-kind[aria-pressed='true'] { background: var(--color-accent); color: var(--color-on-accent); }
+      .chip { font-family: var(--font-mono); font-size: 10.5px; border: 1px solid var(--color-line-2); border-radius: 999px; padding: 1px 8px; color: var(--color-muted); }
+      .chip.skill { color: var(--color-warn); border-color: color-mix(in srgb, var(--color-warn) 50%, transparent); }
+      .app { border: 1px solid var(--color-line); background: var(--color-surface); border-radius: 10px; padding: 10px 12px; }
+      .app.active { border-color: var(--color-accent); }
+      .app select { background: var(--color-bg); border: 1px solid var(--color-line-2); border-radius: 6px; font-size: 11px; padding: 2px 4px; color: var(--color-ink); }
+      .app button.a { font-family: var(--font-mono); font-size: 10.5px; color: var(--color-muted); }
+      .app button.a:hover { color: var(--color-accent); }
       .paper {
         width: 210mm; min-height: 297mm; margin: 0 auto; padding: 13mm 12.5mm;
         background: #fff; color: #000; box-shadow: 0 10px 40px rgb(0 0 0 / 0.45);
@@ -90,10 +177,7 @@ const fontCss = `
       .paper .r-head { display: flex; justify-content: space-between; align-items: flex-end; font-size: 10pt; line-height: 1.25; }
       .paper .r-head h1 { font-size: 17.3pt; font-weight: 700; line-height: 1.1; }
       .paper .r-head .right { text-align: right; }
-      .paper h2 {
-        font-variant: small-caps; font-size: 12pt; font-weight: 400; letter-spacing: 0.01em;
-        border-bottom: 0.5pt solid #000; margin: 7pt 0 3.5pt; padding-bottom: 0.5pt;
-      }
+      .paper h2 { font-variant: small-caps; font-size: 12pt; font-weight: 400; letter-spacing: 0.01em; border-bottom: 0.5pt solid #000; margin: 7pt 0 3.5pt; padding-bottom: 0.5pt; }
       .paper .row { display: flex; justify-content: space-between; gap: 12pt; }
       .paper ul { margin: 0; }
       .paper ul.l1 { list-style: disc; padding-left: 12pt; }
@@ -101,12 +185,11 @@ const fontCss = `
       .paper ul.l1 > li:first-child { margin-top: 0; }
       .paper ul.l2 { list-style: circle; padding-left: 16pt; margin-top: 1pt; }
       .paper ul.l2 > li { margin-top: 1pt; }
-      .paper ul.l2.projects > li { margin-top: 2.5pt; }
+      .paper ul.l2.projects > li { margin-top: 2.5pt; break-inside: avoid; }
       .paper ul.l3 { list-style: '–  '; padding-left: 14pt; }
       .paper .ctx { font-style: italic; margin: 1pt 0 0; }
       .paper .skills p { margin: 0.5pt 0; }
       .paper li, .paper .row { break-inside: avoid; }
-      .paper ul.l2.projects > li { break-inside: avoid; }
       @media print {
         @page { size: A4; margin: 13mm 12.5mm; }
         html, body { background: #fff !important; }
@@ -118,78 +201,219 @@ const fontCss = `
     </style>
 
     <script>
-      import { parse, tailor, texToHtml, claudePrompt, type Model, type Role } from '../../lib/resume';
+      import { parse, tailor, texToHtml, claudePrompt, atsMissing, type Model, type Role } from '../../lib/resume';
+      import {
+        loadApps, saveApps, getToken, setToken, slug, refLink, today, message, messagePrompt,
+        fetchRefStats, ago, STATUSES, type App, type MsgKind, type RefStats,
+      } from '../../lib/studio';
 
       const source: string = JSON.parse(document.getElementById('tex-src')!.textContent!);
-      const $ = (id: string) => document.getElementById(id)!;
-      const jdEl = $('jd') as HTMLTextAreaElement;
-      const trimEl = $('opt-trim') as HTMLInputElement, sumEl = $('opt-summary') as HTMLInputElement;
-      let current = source;
+      const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+      const jdEl = $<HTMLTextAreaElement>('jd'), companyEl = $<HTMLInputElement>('company'), roleEl = $<HTMLInputElement>('role');
+      const trimEl = $<HTMLInputElement>('opt-trim'), sumEl = $<HTMLInputElement>('opt-summary');
+      const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+      let current = source, last = tailor(source, '', { trim: true, summary: true });
+      let apps = loadApps(), activeId = '', kind: MsgKind = 'cover', insights = new Map<string, RefStats>();
 
-      const bullets = (cls: string, items: { tex: string }[]) =>
-        `<ul class="${cls}">${items.map((b) => `<li>${texToHtml(b.tex)}</li>`).join('')}</ul>`;
-      const role = (r: Role) => `
-        <li>
+      const flash = (m: string) => { $('flash').textContent = m; setTimeout(() => ($('flash').textContent = ''), 2600); };
+      const copy = async (text: string, what: string) => { await navigator.clipboard.writeText(text); flash(`${what} copied ✓`); };
+      const ref = () => slug(companyEl.value || 'company');
+      const link = () => (companyEl.value.trim() ? refLink(ref()) : refLink('').replace('?ref=', ''));
+
+      // ---------- tabs ----------
+      const show = (tab: string) => {
+        document.querySelectorAll<HTMLButtonElement>('.st-tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+        document.querySelectorAll<HTMLElement>('[data-panel]').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== tab));
+        if (tab === 'messages') renderMessage();
+        if (tab === 'apps') renderApps();
+      };
+      document.querySelectorAll<HTMLButtonElement>('.st-tab').forEach((b) => b.addEventListener('click', () => show(b.dataset.tab!)));
+
+      // ---------- résumé preview ----------
+      const bullets = (cls: string, items: { tex: string }[]) => `<ul class="${cls}">${items.map((b) => `<li>${texToHtml(b.tex)}</li>`).join('')}</ul>`;
+      const roleHtml = (r: Role) => `<li>
           <div class="row"><b>${texToHtml(r.title)}</b><span>${texToHtml(r.dates)}</span></div>
           ${r.context ? `<p class="ctx">${texToHtml(r.context)}</p>` : ''}
           ${r.blocks.length ? `<ul class="l2 projects">${r.blocks.map((b) => `<li><b>${texToHtml(b.title)}</b> | <i>${texToHtml(b.stack)}</i>${bullets('l3', b.bullets)}</li>`).join('')}</ul>` : ''}
           ${r.bullets.length ? bullets('l2', r.bullets) : ''}
         </li>`;
-
       const render = (m: Model) => {
         const h = m.header;
         let html = `<div class="r-head">
           <div><h1>${h.name}</h1><p>${h.links.map((l) => `<a href="${l.href}">${texToHtml(l.text)}</a>`).join(' | ')}</p></div>
-          <div class="right"><p>Email: <a href="mailto:${h.email}">${h.email}</a></p><p>Mobile: ${h.phone}</p></div>
-        </div>`;
+          <div class="right"><p>Email: <a href="mailto:${h.email}">${h.email}</a></p><p>Mobile: ${h.phone}</p></div></div>`;
         for (const s of m.sections) {
           html += `<h2>${texToHtml(s.title)}</h2>`;
           if (s.kind === 'summary') html += `<p>${texToHtml(s.tex)}</p>`;
-          if (s.kind === 'roles') html += `<ul class="l1">${s.roles.map(role).join('')}</ul>`;
+          if (s.kind === 'roles') html += `<ul class="l1">${s.roles.map(roleHtml).join('')}</ul>`;
           if (s.kind === 'skills') html += `<div class="skills">${s.rows.map((r) => `<p><b>${texToHtml(r.label)}:</b> ${r.items.map(texToHtml).join(', ')}</p>`).join('')}</div>`;
           if (s.kind === 'education') html += `<ul class="l1"><li><div class="row"><b>${texToHtml(s.school)}</b><span>${texToHtml(s.dates)}</span></div><div class="row"><i>${texToHtml(s.degree)}</i><i>${texToHtml(s.gpa)}</i></div></li></ul>`;
           if (s.kind === 'list') html += bullets('l2', s.bullets);
         }
         $('paper').innerHTML = html;
-        // page estimate: printable height of an A4 page with these margins
-        const mm = 96 / 25.4, pageH = (297 - 26) * mm;
-        const contentH = $('paper').scrollHeight - 26 * mm;
-        const pages = contentH / pageH;
+        const mm = 96 / 25.4, pages = ($('paper').scrollHeight - 26 * mm) / ((297 - 26) * mm);
         $('pages').textContent = `≈ ${pages.toFixed(1)} pages${pages > 2.02 ? ' · over two pages, try trimming' : ''}`;
       };
 
       const run = () => {
         const jd = jdEl.value;
-        const r = tailor(source, jd, { trim: trimEl.checked, summary: sumEl.checked });
-        current = r.tex;
+        last = tailor(source, jd, { trim: trimEl.checked, summary: sumEl.checked });
+        current = last.tex;
         render(parse(current));
         $('result').classList.toggle('hidden', !jd.trim());
-        $('r-score').textContent = String(r.score);
-        $('r-matched').textContent = r.matched.join(' · ') || 'none recognised';
-        $('r-gaps').textContent = r.gaps.join(' · ') || 'none';
+        $('r-score').textContent = String(last.score);
+        $('r-matched').textContent = last.matched.join(' · ') || 'none recognised';
+        $('r-gaps').textContent = last.gaps.join(' · ') || 'none';
+        $('r-ats').innerHTML = jd.trim()
+          ? atsMissing(jd, current).map((m) => `<span class="chip ${m.skill ? 'skill' : ''}">${esc(m.term)}</span>`).join('') || '<span class="text-[12px] text-faint">nothing missing</span>'
+          : '';
+        $('ref-link').textContent = link();
       };
-
       let t = 0;
       jdEl.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(run, 250); });
       trimEl.addEventListener('change', run);
       sumEl.addEventListener('change', run);
+      companyEl.addEventListener('input', () => { $('ref-link').textContent = link(); renderMessage(); });
+      roleEl.addEventListener('input', () => renderMessage());
+      $('copy-ref').addEventListener('click', () => copy(link(), 'link'));
 
-      const flash = (m: string) => { $('msg').textContent = m; setTimeout(() => ($('msg').textContent = ''), 2500); };
-      $('dl-pdf').addEventListener('click', () => window.print());
-      $('dl-tex').addEventListener('click', () => {
+      const downloadTex = (tex: string, name = 'Ayush_Anand_Resume') => {
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([current], { type: 'application/x-tex' }));
-        a.download = 'Ayush_Anand_Resume.tex';
+        a.href = URL.createObjectURL(new Blob([tex], { type: 'application/x-tex' }));
+        a.download = `${name}.tex`;
         a.click();
         URL.revokeObjectURL(a.href);
-      });
-      $('copy-prompt').addEventListener('click', async () => {
-        if (!jdEl.value.trim()) { flash('paste a job description first'); jdEl.focus(); return; }
-        await navigator.clipboard.writeText(claudePrompt(jdEl.value, source));
-        flash('prompt copied ✓ paste it into Claude');
+      };
+      $('dl-pdf').addEventListener('click', () => window.print());
+      $('dl-tex').addEventListener('click', () => downloadTex(current));
+      $('copy-prompt').addEventListener('click', () => {
+        if (!jdEl.value.trim()) { flash('paste a job description first'); return jdEl.focus(); }
+        copy(claudePrompt(jdEl.value, source), 'prompt');
       });
 
-      // fonts first, so the page estimate is measured with the real metrics
+      // ---------- messages ----------
+      const ctx = () => ({
+        company: companyEl.value.trim(), role: roleEl.value.trim(), person: $<HTMLInputElement>('person').value.trim(),
+        link: link(), matched: last.matched, proofs: last.proofs, email: parse(source).header.email, phone: parse(source).header.phone,
+      });
+      const renderMessage = () => {
+        const text = message(kind, ctx());
+        $<HTMLTextAreaElement>('msg-out').value = text;
+        $('msg-count').textContent = `${text.length} characters${kind === 'linkedin' ? (text.length > 300 ? ' · over LinkedIn’s 300 limit, trim it' : ' · fits LinkedIn’s 300 limit') : ''}`;
+      };
+      document.querySelectorAll<HTMLButtonElement>('.msg-kind').forEach((b) =>
+        b.addEventListener('click', () => {
+          kind = b.dataset.kind as MsgKind;
+          document.querySelectorAll('.msg-kind').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+          renderMessage();
+        }),
+      );
+      $('person').addEventListener('input', renderMessage);
+      $('msg-out').addEventListener('input', () => ($('msg-count').textContent = `${$<HTMLTextAreaElement>('msg-out').value.length} characters`));
+      $('msg-copy').addEventListener('click', () => copy($<HTMLTextAreaElement>('msg-out').value, 'message'));
+      $('msg-prompt').addEventListener('click', () => {
+        if (!jdEl.value.trim()) { flash('paste the JD on the Tailor tab first'); return; }
+        copy(messagePrompt(kind, ctx(), jdEl.value, source), 'prompt');
+      });
+
+      // ---------- applications ----------
+      const persist = () => { saveApps(apps); renderApps(); };
+      const load = (a: App) => {
+        activeId = a.id;
+        companyEl.value = a.company; roleEl.value = a.role; jdEl.value = a.jd;
+        trimEl.checked = a.trim; sumEl.checked = a.summary;
+        run();
+      };
+      $('save-app').addEventListener('click', () => {
+        if (!companyEl.value.trim()) { flash('add the company name first'); return companyEl.focus(); }
+        const data = { company: companyEl.value.trim(), role: roleEl.value.trim(), ref: ref(), jd: jdEl.value, trim: trimEl.checked, summary: sumEl.checked };
+        const existing = apps.find((a) => a.id === activeId) ?? apps.find((a) => a.ref === data.ref);
+        if (existing) Object.assign(existing, data);
+        else { const a: App = { id: crypto.randomUUID(), date: today(), status: 'saved', notes: '', ...data }; apps.unshift(a); activeId = a.id; }
+        persist();
+        flash(existing ? 'application updated ✓' : 'saved to applications ✓');
+      });
+
+      const renderApps = () => {
+        $('app-count').textContent = String(apps.length);
+        $('app-list').innerHTML = apps.length ? apps.map((a) => {
+          const st = insights.get(a.ref);
+          const seen = st ? `${ago(st.last)}${st.visits ? ` · ${st.visits} visit${st.visits === 1 ? '' : 's'}` : ''}` : '';
+          const acts = st?.actions.length ? st.actions.map((x) => `${x.label}${x.count > 1 ? ` ×${x.count}` : ''}`).join(' · ') : '';
+          return `<li class="app ${a.id === activeId ? 'active' : ''}" data-id="${a.id}">
+            <div class="flex items-start justify-between gap-2">
+              <div><p class="text-[13px] font-medium text-ink">${esc(a.company)}</p><p class="text-[11.5px] text-muted">${esc(a.role || '—')} · ${a.date}</p></div>
+              <select data-act="status">${STATUSES.map((s) => `<option ${s === a.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
+            </div>
+            ${seen ? `<p class="mt-1.5 font-mono text-[10.5px] text-accent">● ${esc(seen)}</p>` : ''}
+            ${acts ? `<p class="mt-0.5 font-mono text-[10px] text-faint">${esc(acts)}</p>` : ''}
+            <input data-act="notes" value="${esc(a.notes)}" placeholder="notes" class="st-input mt-2 w-full py-1 text-[11.5px]" />
+            <div class="mt-2 flex flex-wrap gap-3">
+              <button class="a" data-act="open">open</button>
+              <button class="a" data-act="pdf">pdf</button>
+              <button class="a" data-act="tex">.tex</button>
+              <button class="a" data-act="link">copy link</button>
+              <button class="a" data-act="del">delete</button>
+            </div>
+          </li>`;
+        }).join('') : '<li class="text-[12px] text-faint">Nothing yet. Tailor a résumé, add the company, and press “Save to applications”.</li>';
+      };
+      $('app-list').addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');
+        const li = (e.target as HTMLElement).closest<HTMLElement>('.app');
+        if (!btn || !li || btn.tagName === 'SELECT' || btn.tagName === 'INPUT') return;
+        const a = apps.find((x) => x.id === li.dataset.id)!;
+        const act = btn.dataset.act;
+        if (act === 'open') { load(a); show('tailor'); }
+        if (act === 'pdf') { load(a); setTimeout(() => window.print(), 150); }
+        if (act === 'tex') downloadTex(tailor(source, a.jd, { trim: a.trim, summary: a.summary }).tex, `Ayush_Anand_Resume_${a.ref}`);
+        if (act === 'link') copy(refLink(a.ref), 'link');
+        if (act === 'del' && confirm(`Delete ${a.company}?`)) { apps = apps.filter((x) => x !== a); persist(); }
+      });
+      $('app-list').addEventListener('change', (e) => {
+        const el = e.target as HTMLInputElement | HTMLSelectElement;
+        const a = apps.find((x) => x.id === el.closest<HTMLElement>('.app')!.dataset.id)!;
+        if (el.dataset.act === 'status') a.status = el.value as App['status'];
+        if (el.dataset.act === 'notes') a.notes = el.value;
+        saveApps(apps);
+      });
+      $('export').addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(apps, null, 2)], { type: 'application/json' }));
+        a.download = `applications-${today()}.json`;
+        a.click();
+      });
+      $<HTMLInputElement>('import').addEventListener('change', async (e) => {
+        const f = (e.target as HTMLInputElement).files?.[0];
+        if (!f) return;
+        try {
+          const incoming: App[] = JSON.parse(await f.text());
+          const ids = new Set(apps.map((a) => a.id));
+          apps = [...apps, ...incoming.filter((a) => a.id && a.company && !ids.has(a.id))];
+          persist();
+          flash(`imported ✓ (${apps.length} total)`);
+        } catch { flash('that file is not a studio export'); }
+      });
+      $('refresh').addEventListener('click', async () => {
+        const token = getToken();
+        if (!token) { $('insight-msg').textContent = 'Add your GoatCounter API key in Settings first.'; return; }
+        $('insight-msg').textContent = 'reading GoatCounter…';
+        try {
+          insights = await fetchRefStats(token);
+          $('insight-msg').textContent = `updated ${new Date().toLocaleTimeString()} · last 120 days`;
+          renderApps();
+        } catch (err) { $('insight-msg').textContent = (err as Error).message; }
+      });
+
+      // ---------- settings ----------
+      $<HTMLInputElement>('gc-token').value = getToken() ? '••••••••' : '';
+      $('gc-save').addEventListener('click', () => {
+        const v = $<HTMLInputElement>('gc-token').value;
+        if (!v || v.startsWith('•')) return flash('paste a key first');
+        setToken(v); $<HTMLInputElement>('gc-token').value = '••••••••'; flash('key saved in this browser ✓');
+      });
+      $('gc-clear').addEventListener('click', () => { setToken(''); $<HTMLInputElement>('gc-token').value = ''; flash('key removed'); });
+
       document.fonts.ready.then(run);
     </script>
   </body>

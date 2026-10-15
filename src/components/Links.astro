@@ -4,6 +4,9 @@
 
 <script>
   // ---------- tracking ----------
+  // Every event is tagged with the visitor's ?ref= (e.g. resume-download@acme), so the studio can
+  // attribute actions to an application. GoatCounter itself never links visits together.
+  const refTag = (new URLSearchParams(location.search).get('ref') ?? '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40);
   const queue: [string, string][] = [];
   const flush = () => {
     const gc = (window as any).goatcounter;
@@ -15,10 +18,12 @@
     return true;
   };
   const track = (path: string, title = path) => {
+    if (refTag) { path = `${path}@${refTag}`; title = `${title} · ${refTag}`; }
     queue.push([path, title]);
     if (!flush()) setTimeout(flush, 1500);
   };
   (window as any).track = track;
+  if (refTag) track('visit', 'Visit');
 
   document.addEventListener('click', (e) => {
     const el = (e.target as HTMLElement)?.closest?.('a, button') as HTMLElement | null;
