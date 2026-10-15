@@ -1,0 +1,39 @@
+---
+import SectionHead from './SectionHead.astro';
+import { profile } from '../data/profile';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+
+<section id="contact" class="pt-16 pb-10">
+  <SectionHead idx="06" name="contact" title="Let's talk" />
+  <div class="reveal card p-5">
+    <p class="max-w-[520px] text-[13.5px] text-ink/90">
+      Open to backend and data engineering roles. The fastest way to reach me is email.
+    </p>
+    <div class="mt-4 flex flex-wrap items-center gap-2">
+      <a class="btn btn-primary" href={`mailto:${profile.email}`}>{profile.email}</a>
+      <button type="button" id="copy-email" class="btn" data-email={profile.email}>copy</button>
+      <a class="btn" href={profile.links.linkedin} target="_blank" rel="noopener">LinkedIn ↗</a>
+      <a class="btn" href={profile.links.github} target="_blank" rel="noopener">GitHub ↗</a>
+      <a class="btn" href={`${base}${profile.resume}`} download>Resume ↓</a>
+    </div>
+  </div>
+
+  <footer class="mt-14 flex flex-wrap justify-between gap-2 font-mono text-[10.5px] text-faint">
+    <p>© {new Date().getFullYear()} {profile.name}</p>
+    <p>end of pipeline · built with Astro</p>
+  </footer>
+</section>
+
+<script>
+  const btn = document.getElementById('copy-email') as HTMLButtonElement;
+  btn?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(btn.dataset.email!);
+      btn.textContent = 'copied ✓';
+      setTimeout(() => (btn.textContent = 'copy'), 1600);
+    } catch {
+      location.href = `mailto:${btn.dataset.email}`;
+    }
+  });
+</script>

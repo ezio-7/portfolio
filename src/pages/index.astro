@@ -1,0 +1,32 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Rail from '../components/Rail.astro';
+import Hero from '../components/Hero.astro';
+import SectionHead from '../components/SectionHead.astro';
+import Experience from '../components/Experience.astro';
+import CaseStudies from '../components/CaseStudies.astro';
+import Projects from '../components/Projects.astro';
+import Toolkit from '../components/Toolkit.astro';
+import Contact from '../components/Contact.astro';
+import { profile } from '../data/profile';
+---
+
+<Layout>
+  <Rail />
+  <main class="mx-auto max-w-[760px] px-5">
+    <Hero />
+
+    <section id="about" class="py-16">
+      <SectionHead idx="01" name="about" title="A bit about me" />
+      <div class="reveal space-y-3 text-[13.5px] text-ink/85">
+        {profile.about.map((p) => <p>{p}</p>)}
+      </div>
+    </section>
+
+    <Experience />
+    <CaseStudies />
+    <Projects />
+    <Toolkit />
+    <Contact />
+  </main>
+</Layout>

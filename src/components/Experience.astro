@@ -1,0 +1,88 @@
+---
+import SectionHead from './SectionHead.astro';
+import PlatformPipeline from './PlatformPipeline.astro';
+import { experience } from '../data/experience';
+---
+
+<section id="experience" class="py-16">
+  <SectionHead idx="02" name="experience" title="Where I've worked" />
+
+  <ol class="relative">
+    <span class="absolute top-2 bottom-2 left-[3px] w-px bg-line" aria-hidden="true"></span>
+    {
+      experience.map((r, i) => (
+        <li class="reveal relative pb-10 pl-7 last:pb-0">
+          <span
+            class:list={[
+              'absolute top-[7px] left-0 h-[7px] w-[7px] rounded-full border',
+              i === 0 ? 'border-accent bg-accent shadow-[0_0_0_4px_var(--color-accent-dim)]' : 'border-line-2 bg-bg',
+            ]}
+            aria-hidden="true"
+          />
+          <div class="flex flex-wrap items-baseline justify-between gap-x-4">
+            <h3 class="text-[15px] font-medium">
+              {r.company}
+              <span class="font-normal text-muted"> · {r.role}</span>
+            </h3>
+            <p class="font-mono text-[11px] text-faint">{r.period}</p>
+          </div>
+
+          {r.context && <p class="mt-1 text-[13px] text-muted">{r.context}</p>}
+
+          {r.platform && <PlatformPipeline />}
+
+          {r.blocks && (
+            <div class="space-y-1.5">
+              {r.blocks.map((b, j) => (
+                <details class="block-item card px-4 py-2.5" open={j < 2}>
+                  <summary class="flex cursor-pointer list-none items-center justify-between gap-3">
+                    <span class="text-[13.5px] font-medium">{b.title}</span>
+                    <span class="flex items-center gap-2">
+                      <span class="hidden flex-wrap justify-end gap-1 md:flex">
+                        {b.stack.slice(0, 3).map((s) => <span class="tag">{s}</span>)}
+                      </span>
+                      <span class="chev font-mono text-[11px] text-faint">+</span>
+                    </span>
+                  </summary>
+                  <ul class="mt-2.5 mb-1 space-y-1">
+                    {b.points.map((p) => (
+                      <li class="relative pl-4 text-[13px] text-ink/85">
+                        <span class="absolute top-[9px] left-0 h-px w-2 bg-faint" />
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ))}
+            </div>
+          )}
+
+          {r.points && (
+            <ul class="mt-2.5 space-y-1">
+              {r.points.map((p) => (
+                <li class="relative pl-4 text-[13px] text-ink/85">
+                  <span class="absolute top-[9px] left-0 h-px w-2 bg-faint" />
+                  {p}
+                </li>
+              ))}
+            </ul>
+          )}
+        </li>
+      ))
+    }
+  </ol>
+</section>
+
+<style>
+  .block-item[open] .chev {
+    transform: rotate(45deg);
+    color: var(--color-accent);
+  }
+  .chev {
+    display: inline-block;
+    transition: transform 0.15s;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

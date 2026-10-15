@@ -1,0 +1,137 @@
+---
+import SectionHead from './SectionHead.astro';
+import Diagram from './Diagram.astro';
+import { caseStudies } from '../data/caseStudies';
+---
+
+<section id="work" class="py-16">
+  <SectionHead idx="03" name="selected work" title="Systems I designed and built" />
+  <p class="-mt-3 mb-6 max-w-[560px] text-muted">
+    Four HiLabs systems, each with its problem, approach and architecture. Open one to explore the diagram.
+  </p>
+
+  <div class="grid gap-3 sm:grid-cols-2">
+    {
+      caseStudies.map((c, i) => (
+        <button
+          type="button"
+          data-open={c.id}
+          class="case reveal card group relative flex flex-col p-4 text-left transition-colors hover:border-line-2"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="font-mono text-[10px] text-faint">CASE {String(i + 1).padStart(2, '0')}</p>
+              <h3 class="mt-1 text-[15px] font-medium">{c.title}</h3>
+              <p class="text-[12.5px] text-muted">{c.tagline}</p>
+            </div>
+            <span class="arrow mt-1 font-mono text-[12px] text-faint transition-colors group-hover:text-accent">↗</span>
+          </div>
+
+          <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+            {c.results.map((r) => (
+              <div>
+                <p class="text-[14px] font-medium text-accent">{r.value}</p>
+                <p class="font-mono text-[10px] text-faint">{r.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div class="mt-4 flex flex-wrap gap-1.5">
+            {c.stack.map((s) => <span class="tag">{s}</span>)}
+          </div>
+
+          <p class="mt-4 font-mono text-[10.5px] text-faint transition-colors group-hover:text-ink">
+            view architecture →
+          </p>
+        </button>
+      ))
+    }
+  </div>
+
+  {
+    caseStudies.map((c, i) => (
+      <dialog id={`dlg-${c.id}`} class="arch" aria-labelledby={`dlg-title-${c.id}`}>
+        <div class="card max-h-[calc(100vh-32px)] overflow-y-auto border-line-2 bg-bg p-5 sm:p-7">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="stage-label">
+                <b>case {String(i + 1).padStart(2, '0')}</b> / architecture
+              </p>
+              <h3 id={`dlg-title-${c.id}`} class="mt-1 text-[18px] font-medium tracking-tight">
+                {c.title}
+              </h3>
+              <p class="text-[12.5px] text-muted">{c.tagline}</p>
+            </div>
+            <button type="button" data-close class="btn shrink-0 px-2.5" aria-label="Close">
+              esc ✕
+            </button>
+          </div>
+
+          <div class="mt-5 grid gap-5 md:grid-cols-[1fr_1.35fr]">
+            <div>
+              <p class="stage-label mb-1.5">problem</p>
+              <p class="text-[13px] text-ink/90">{c.problem}</p>
+            </div>
+            <div>
+              <p class="stage-label mb-1.5">approach</p>
+              <ul class="space-y-1.5 text-[13px] text-ink/90">
+                {c.approach.map((a) => (
+                  <li class="relative pl-4">
+                    <span class="absolute top-[9px] left-0 h-1 w-1 rounded-full bg-accent" />
+                    {a}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div class="mt-6 overflow-x-auto rounded-xl border border-line bg-surface/60 p-3">
+            <div class="min-w-[760px]">
+              <Diagram diagram={c.diagram} id={c.id} />
+            </div>
+          </div>
+          <p class="mt-2 font-mono text-[10.5px] text-faint">
+            hover or tap a component for details · dashed = retired or supporting path
+          </p>
+
+          <div class="mt-6 flex flex-wrap items-end justify-between gap-4">
+            <div class="flex flex-wrap gap-x-6 gap-y-2">
+              {c.results.map((r) => (
+                <div>
+                  <p class="text-[15px] font-medium text-accent">{r.value}</p>
+                  <p class="font-mono text-[10px] text-faint">{r.label}</p>
+                </div>
+              ))}
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              {c.stack.map((s) => <span class="tag">{s}</span>)}
+            </div>
+          </div>
+        </div>
+      </dialog>
+    ))
+  }
+</section>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const dlg = document.getElementById(`dlg-${btn.dataset.open}`) as HTMLDialogElement;
+      dlg.showModal();
+    });
+  });
+  document.querySelectorAll<HTMLDialogElement>('dialog.arch').forEach((dlg) => {
+    dlg.querySelector('[data-close]')?.addEventListener('click', () => dlg.close());
+    // click on the backdrop closes
+    dlg.addEventListener('click', (e) => {
+      if (e.target === dlg) dlg.close();
+    });
+    dlg.addEventListener('close', () => {
+      const tip = document.getElementById('tip');
+      if (tip) {
+        tip.classList.remove('on');
+        document.body.appendChild(tip);
+      }
+    });
+  });
+</script>

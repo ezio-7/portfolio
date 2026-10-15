@@ -1,0 +1,13 @@
+---
+interface Props {
+  idx: string;
+  name: string;
+  title: string;
+}
+const { idx, name, title } = Astro.props;
+---
+
+<header class="mb-6">
+  <p class="stage-label"><b>{idx}</b> / {name}</p>
+  <h2 class="mt-1.5 text-[19px] font-medium tracking-tight text-ink">{title}</h2>
+</header>

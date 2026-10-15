@@ -1,0 +1,177 @@
+---
+import type { Diagram, DiagramNode } from '../data/caseStudies';
+
+interface Props {
+  diagram: Diagram;
+  id: string;
+}
+const { diagram, id } = Astro.props;
+const { width, height, nodes, edges, groups = [] } = diagram;
+
+const W = 170, H = 44;
+const box = (n: DiagramNode) => {
+  const w = n.w ?? W, h = n.h ?? H;
+  return { l: n.x, r: n.x + w, t: n.y, b: n.y + h, cx: n.x + w / 2, cy: n.y + h / 2, w, h };
+};
+const byId = Object.fromEntries(nodes.map((n) => [n.id, box(n)]));
+
+// Point on a box side: 'l' | 'r' | 't' | 'b', optional fraction along it ('b.3')
+type Box = ReturnType<typeof box>;
+const port = (bx: Box, spec: string) => {
+  const side = spec[0], f = spec.length > 1 ? parseFloat(spec.slice(1)) : 0.5;
+  const pt = {
+    l: [bx.l, bx.t + bx.h * f, -1, 0],
+    r: [bx.r, bx.t + bx.h * f, 1, 0],
+    t: [bx.l + bx.w * f, bx.t, 0, -1],
+    b: [bx.l + bx.w * f, bx.b, 0, 1],
+  }[side as 'l' | 'r' | 't' | 'b'];
+  return { x: pt[0], y: pt[1], nx: pt[2], ny: pt[3] };
+};
+
+// Cubic bezier between node ports; sides auto-chosen unless the edge pins them
+const paths = edges.map((e) => {
+  const a = byId[e.from], b = byId[e.to];
+  let sx: number, sy: number, c1x: number, c1y: number, c2x: number, c2y: number, ex: number, ey: number;
+  if (e.ports) {
+    const s = port(a, e.ports[0]), t = port(b, e.ports[1]);
+    const k = Math.max(Math.hypot(t.x - s.x, t.y - s.y) * 0.4, 30);
+    [sx, sy, ex, ey] = [s.x, s.y, t.x, t.y];
+    [c1x, c1y, c2x, c2y] = [s.x + s.nx * k, s.y + s.ny * k, t.x + t.nx * k, t.y + t.ny * k];
+  } else if (e.route) {
+    const under = e.route === 'under';
+    sx = a.cx; sy = under ? a.b : a.t;
+    ex = b.cx; ey = under ? b.b : b.t;
+    const y = under ? Math.max(a.b, b.b) + 46 : Math.min(a.t, b.t) - 46;
+    [c1x, c1y, c2x, c2y] = [sx, y, ex, y];
+  } else {
+    const dx = b.cx - a.cx, dy = b.cy - a.cy;
+    if (Math.abs(dx) >= Math.abs(dy) * 1.1) {
+      sx = dx > 0 ? a.r : a.l; sy = a.cy;
+      ex = dx > 0 ? b.l : b.r; ey = b.cy;
+      const k = Math.max(Math.abs(ex - sx) * 0.5, 24) * Math.sign(dx);
+      [c1x, c1y, c2x, c2y] = [sx + k, sy, ex - k, ey];
+    } else {
+      sx = a.cx; sy = dy > 0 ? a.b : a.t;
+      ex = b.cx; ey = dy > 0 ? b.t : b.b;
+      const k = Math.max(Math.abs(ey - sy) * 0.5, 20) * Math.sign(dy);
+      [c1x, c1y, c2x, c2y] = [sx, sy + k, ex, ey - k];
+    }
+  }
+  const d = `M${sx} ${sy} C${c1x} ${c1y}, ${c2x} ${c2y}, ${ex} ${ey}`;
+  const mx = (sx + 3 * c1x + 3 * c2x + ex) / 8, my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
+  return { ...e, d, mx, my };
+});
+const mk = `arrow-${id}`, mkMuted = `arrow-m-${id}`;
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} class="diagram block w-full" role="img" aria-label="Architecture diagram">
+  <defs>
+    <marker id={mk} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L8 4 L0 8 z" fill="var(--color-accent)" />
+    </marker>
+    <marker id={mkMuted} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L8 4 L0 8 z" fill="var(--color-faint)" />
+    </marker>
+  </defs>
+
+  {
+    groups.map((g) => (
+      <g>
+        <rect x={g.x} y={g.y} width={g.w} height={g.h} rx="12" fill="none" stroke="var(--color-line)" stroke-dasharray="3 5" />
+        <text x={g.x + 14} y={g.y + 16} class="fill-faint font-mono" font-size="9.5" letter-spacing="0.08em">
+          {g.label.toUpperCase()}
+        </text>
+      </g>
+    ))
+  }
+
+  {
+    paths.map((p) => (
+      <g>
+        <path d={p.d} fill="none" stroke="var(--color-line-2)" stroke-width="1" />
+        <path
+          d={p.d}
+          fill="none"
+          stroke={p.muted ? 'var(--color-faint)' : 'var(--color-accent)'}
+          stroke-width="1.5"
+          class="flow"
+          opacity={p.muted ? 0.6 : 0.85}
+          marker-end={`url(#${p.muted ? mkMuted : mk})`}
+        />
+        {p.label && (
+          <g>
+            <rect x={p.mx - p.label.length * 2.9 - 6} y={p.my - 8} width={p.label.length * 5.8 + 12} height="16" rx="8" fill="var(--color-bg)" stroke="var(--color-line)" />
+            <text x={p.mx} y={p.my + 3.2} text-anchor="middle" class="fill-muted font-mono" font-size="9.5">
+              {p.label}
+            </text>
+          </g>
+        )}
+      </g>
+    ))
+  }
+
+  {
+    nodes.map((n) => {
+      const b = byId[n.id];
+      const kind = n.kind ?? 'process';
+      return (
+        <g class={`dnode k-${kind}`} data-tip={n.tip} tabindex="0">
+          <rect x={b.l} y={b.t} width={b.w} height={b.h} rx="9" />
+          {kind === 'store' && (
+            <g transform={`translate(${b.r - 20} ${b.t + 9})`} class="db-icon">
+              <ellipse cx="5" cy="2.5" rx="5" ry="2.5" />
+              <path d="M0 2.5 V10.5 A5 2.5 0 0 0 10 10.5 V2.5" />
+            </g>
+          )}
+          <text x={b.l + 12} y={b.t + (n.sub ? 18 : 26)} class="lbl" font-size="12.5">
+            {n.label}
+          </text>
+          {n.sub && (
+            <text x={b.l + 12} y={b.t + 33} class="sub font-mono" font-size="9.5">
+              {n.sub}
+            </text>
+          )}
+        </g>
+      );
+    })
+  }
+</svg>
+
+<style>
+  .dnode {
+    cursor: help;
+    outline: none;
+  }
+  .dnode rect {
+    fill: var(--color-surface-2);
+    stroke: var(--color-line-2);
+    transition: stroke 0.15s, fill 0.15s;
+  }
+  .dnode .lbl {
+    fill: var(--color-ink);
+    font-weight: 500;
+  }
+  .dnode .sub {
+    fill: var(--color-faint);
+  }
+  .dnode .db-icon {
+    fill: none;
+    stroke: var(--color-faint);
+    stroke-width: 1;
+  }
+  .dnode.k-accent rect {
+    stroke: var(--color-accent);
+    filter: drop-shadow(0 0 10px rgb(196 240 77 / 0.18));
+  }
+  .dnode.k-muted {
+    opacity: 0.5;
+  }
+  .dnode.k-muted rect {
+    stroke-dasharray: 4 4;
+  }
+  .dnode:hover rect,
+  .dnode:focus rect {
+    stroke: var(--color-accent);
+    fill: #141a0d;
+  }
+</style>

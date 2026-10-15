@@ -1,0 +1,205 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-bg: #08090b;
+  --color-surface: #0e1013;
+  --color-surface-2: #13161a;
+  --color-line: #1d2127;
+  --color-line-2: #2a2f37;
+  --color-ink: #e4e6ea;
+  --color-muted: #8a9099;
+  --color-faint: #5a616b;
+  --color-accent: #c4f04d;
+  --color-accent-dim: rgb(196 240 77 / 0.12);
+}
+
+html {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+  scroll-padding-top: 24px;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgb(196 240 77 / 0.05), transparent 60%),
+    var(--color-bg);
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #0b0c0e;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 1px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Faint engineering grid behind the hero */
+.grid-bg {
+  background-image:
+    linear-gradient(var(--color-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse at 30% 40%, black 10%, transparent 70%);
+  opacity: 0.45;
+}
+
+/* Section label: "02 / experience" */
+.stage-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+.stage-label b {
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.tag {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-muted);
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  border: 1px solid var(--color-line-2);
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: var(--color-ink);
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.btn-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #0b0c0e;
+  font-weight: 500;
+}
+.btn-primary:hover {
+  background: transparent;
+  color: var(--color-accent);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+}
+
+/* Flowing dots along SVG paths */
+.flow {
+  stroke-dasharray: 2 12;
+  animation: flow 1.6s linear infinite;
+}
+@keyframes flow {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Floating tooltip shared by diagrams */
+#tip {
+  position: fixed;
+  z-index: 100;
+  max-width: 260px;
+  pointer-events: none;
+  background: #15181c;
+  border: 1px solid var(--color-line-2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-ink);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.12s, transform 0.12s;
+}
+#tip.on {
+  opacity: 1;
+  transform: none;
+}
+
+dialog.arch {
+  background: transparent;
+  color: inherit;
+  max-width: min(1100px, 100vw - 24px);
+  width: 100%;
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 0;
+  margin: auto;
+}
+dialog.arch::backdrop {
+  background: rgb(4 5 6 / 0.78);
+  backdrop-filter: blur(4px);
+}
+dialog.arch[open] {
+  animation: pop 0.2s ease;
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .flow,
+  dialog.arch[open] {
+    animation: none;
+  }
+  .flow {
+    stroke-dasharray: none;
+  }
+  .motion-dot {
+    display: none;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

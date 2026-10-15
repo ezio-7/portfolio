@@ -1,0 +1,85 @@
+---
+// Fixed "pipeline" rail: one stage per section, lit as you scroll (xl screens).
+// Below xl it collapses to a thin progress bar at the top.
+const stages = [
+  { id: 'top', label: 'start' },
+  { id: 'about', label: 'about' },
+  { id: 'experience', label: 'experience' },
+  { id: 'work', label: 'selected work' },
+  { id: 'projects', label: 'projects' },
+  { id: 'toolkit', label: 'toolkit' },
+  { id: 'contact', label: 'contact' },
+];
+---
+
+<div class="fixed inset-x-0 top-0 z-40 h-[2px] xl:hidden" aria-hidden="true">
+  <div id="progress-bar" class="h-full w-0 bg-accent"></div>
+</div>
+
+<nav
+  aria-label="Sections"
+  class="fixed top-1/2 z-40 hidden -translate-y-1/2 xl:block"
+  style="left: max(20px, calc(50% - 560px));"
+>
+  <div class="relative pl-5">
+    <div class="absolute top-1 bottom-1 left-[3px] w-px bg-line"></div>
+    <div id="rail-fill" class="absolute top-1 left-[3px] w-px bg-accent" style="height:0"></div>
+    <span class="motion-dot rail-dot absolute left-[1px] h-[5px] w-[5px] rounded-full bg-accent"></span>
+    <ol class="space-y-5">
+      {
+        stages.map((s, i) => (
+          <li>
+            <a href={`#${s.id}`} data-stage={s.id} class="rail-link group flex items-center gap-3">
+              <span class="rail-node absolute left-0 h-[7px] w-[7px] rounded-full border border-line-2 bg-bg transition-colors" />
+              <span class="font-mono text-[10.5px] tracking-wide text-faint uppercase transition-colors group-hover:text-ink">
+                {String(i).padStart(2, '0')} {s.label}
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</nav>
+
+<style>
+  .rail-link.active .rail-node {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 4px var(--color-accent-dim);
+  }
+  .rail-link.active span:last-child {
+    color: var(--color-ink);
+  }
+  .rail-dot {
+    animation: rail-run 3.2s linear infinite;
+    box-shadow: 0 0 8px var(--color-accent);
+  }
+  @keyframes rail-run {
+    from { top: 0; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    to { top: 100%; opacity: 0; }
+  }
+</style>
+
+<script>
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('.rail-link')];
+  const fill = document.getElementById('rail-fill')!;
+  const bar = document.getElementById('progress-bar')!;
+  const sections = links.map((l) => document.getElementById(l.dataset.stage!)).filter(Boolean) as HTMLElement[];
+
+  const update = () => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    const p = max > 0 ? scrollY / max : 0;
+    bar.style.width = `${p * 100}%`;
+    fill.style.height = `${p * 100}%`;
+    let current = sections[0];
+    for (const s of sections) if (s.getBoundingClientRect().top < innerHeight * 0.4) current = s;
+    if (scrollY >= max - 2) current = sections[sections.length - 1]; // short last section never reaches the 40% line
+    links.forEach((l) => l.classList.toggle('active', l.dataset.stage === current?.id));
+  };
+  addEventListener('scroll', update, { passive: true });
+  addEventListener('resize', update);
+  update();
+</script>

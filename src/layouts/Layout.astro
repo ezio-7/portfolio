@@ -1,0 +1,74 @@
+---
+import '../styles/global.css';
+import { profile } from '../data/profile';
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const title = `${profile.name} · ${profile.role}`;
+const description = profile.tagline;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content={new URL(`${base}${profile.avatar}`, Astro.site)} />
+    <meta name="theme-color" content="#08090b" />
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <slot />
+    <div id="tip" role="tooltip"></div>
+    <script>
+      // Shared tooltip for any element with data-tip (diagram nodes, pipeline stages)
+      const tip = document.getElementById('tip')!;
+      let pinned: Element | null = null;
+      const show = (el: Element, x: number, y: number) => {
+        // An open <dialog> sits in the top layer, so the tooltip must live inside it
+        const host = el.closest('dialog[open]') || document.body;
+        if (tip.parentElement !== host) host.appendChild(tip);
+        tip.textContent = el.getAttribute('data-tip');
+        const w = tip.offsetWidth, h = tip.offsetHeight;
+        tip.style.left = Math.min(x + 14, innerWidth - w - 8) + 'px';
+        tip.style.top = (y + h + 22 > innerHeight ? y - h - 12 : y + 16) + 'px';
+        tip.classList.add('on');
+      };
+      const hide = () => tip.classList.remove('on');
+      document.addEventListener('pointermove', (e) => {
+        if (e.pointerType !== 'mouse') return;
+        const el = (e.target as Element).closest?.('[data-tip]');
+        el ? show(el, e.clientX, e.clientY) : hide();
+      });
+      document.addEventListener('click', (e) => {
+        const el = (e.target as Element).closest?.('[data-tip]');
+        if (el && el !== pinned) {
+          pinned = el;
+          const r = el.getBoundingClientRect();
+          show(el, r.left + r.width / 2, r.top + r.height / 2);
+        } else {
+          pinned = null;
+          hide();
+        }
+      });
+      document.addEventListener('scroll', () => { pinned = null; hide(); }, { passive: true });
+
+      // Scroll reveal
+      const io = new IntersectionObserver(
+        (entries) => entries.forEach((en) => en.isIntersecting && (en.target.classList.add('in'), io.unobserve(en.target))),
+        { rootMargin: '0px 0px -8% 0px' },
+      );
+      document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+    </script>
+  </body>
+</html>
