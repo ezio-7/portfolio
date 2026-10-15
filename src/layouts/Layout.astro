@@ -4,7 +4,22 @@ import { profile } from '../data/profile';
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const title = `${profile.name} · ${profile.role}`;
-const description = profile.tagline;
+const description = `${profile.name}, ${profile.role} (${profile.focus.join(', ')}). ${profile.tagline}`;
+const pageUrl = new URL(base, Astro.site).href;
+// Structured data so search engines know this page is about a person
+const person = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: profile.name,
+  jobTitle: profile.role,
+  url: pageUrl,
+  image: new URL(`${base}${profile.avatar}`, Astro.site).href,
+  email: `mailto:${profile.email}`,
+  sameAs: [profile.links.github, profile.links.linkedin],
+  worksFor: { '@type': 'Organization', name: 'HiLabs' },
+  alumniOf: { '@type': 'CollegeOrUniversity', name: 'Indian Institute of Technology Kharagpur' },
+  knowsAbout: ['Backend Engineering', 'Python', 'Java', 'Spring Boot', 'SQL', 'MySQL', 'PostgreSQL', 'Kubernetes', 'Azure', 'AWS'],
+};
 ---
 
 <!doctype html>
@@ -14,6 +29,11 @@ const description = profile.tagline;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={pageUrl} />
+    <link rel="sitemap" href={`${base}sitemap-index.xml`} />
+    <meta name="author" content={profile.name} />
+    <meta name="google-site-verification" content="3IAaoU6RQG5R1kqu8drQrj6HEn3hJ88bX4n9NR1--TQ" />
+    <script type="application/ld+json" set:html={JSON.stringify(person)} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
@@ -32,6 +52,8 @@ const description = profile.tagline;
       href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <!-- GoatCounter analytics: anonymous page views, dashboard at ayushanand.goatcounter.com -->
+    <script is:inline data-goatcounter="https://ayushanand.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
   </head>
   <body>
     <slot />

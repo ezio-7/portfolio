@@ -40,9 +40,11 @@ body {
   color: #0b0c0e;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 :focus-visible {
@@ -74,46 +76,49 @@ a {
   font-weight: 500;
 }
 
-.tag {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--color-muted);
-  border: 1px solid var(--color-line);
-  border-radius: 999px;
-  padding: 1px 8px;
-  white-space: nowrap;
-}
+/* Component classes live in a layer so Tailwind utilities (e.g. `hidden`) can override them */
+@layer components {
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--color-muted);
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    padding: 1px 8px;
+    white-space: nowrap;
+  }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  border: 1px solid var(--color-line-2);
-  border-radius: 8px;
-  padding: 6px 12px;
-  color: var(--color-ink);
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
-}
-.btn:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-.btn-primary {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: #0b0c0e;
-  font-weight: 500;
-}
-.btn-primary:hover {
-  background: transparent;
-  color: var(--color-accent);
-}
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    border: 1px solid var(--color-line-2);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: var(--color-ink);
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  .btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .btn-primary {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #0b0c0e;
+    font-weight: 500;
+  }
+  .btn-primary:hover {
+    background: transparent;
+    color: var(--color-accent);
+  }
 
-.card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 12px;
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+  }
 }
 
 /* Flowing dots along SVG paths */

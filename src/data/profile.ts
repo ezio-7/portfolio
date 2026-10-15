@@ -1,11 +1,19 @@
 export const profile = {
   name: 'Ayush Anand',
-  role: 'Software Engineer',
-  focus: ['Python', 'Java', 'Data Platforms'],
+  role: 'Backend Engineer',
+  focus: ['Python', 'Java', 'SQL at scale'],
   tagline:
-    'I build the systems that move healthcare data: ingestion pipelines, data-quality engines and the services that orchestrate them.',
+    'I build backend systems that move healthcare data at scale: services, pipelines, and the SQL that keeps them fast.',
+  // Hiring snapshot shown in the hero; leave a field '' to hide it
+  hiring: {
+    open: true,
+    target: 'SDE-2 · Backend Engineering',
+    experience: '2+ yrs experience',
+    location: 'India',
+    notice: '',
+  },
   about: [
-    'Software engineer at HiLabs, working on a clinical data platform that ingests 1,000+ files a day for multiple US health plans. Most of my work sits where Python data pipelines meet Java services and SQL that has to stay fast at tens of millions of rows.',
+    'Backend engineer at HiLabs, building the services behind a clinical data platform that ingests 1,000+ files a day for multiple US health plans. Most of my work sits where Python services meet Java orchestration and SQL that has to stay fast at tens of millions of rows.',
     'Before that I built backends at EY and interned across microservices, message queues and real-time apps. IIT Kharagpur graduate.',
   ],
   email: 'ayushanand.app@gmail.com',

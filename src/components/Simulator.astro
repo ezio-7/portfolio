@@ -7,11 +7,12 @@ import { simulator } from '../data/simulator';
   <div class="flex flex-wrap items-center justify-between gap-3">
     <p class="stage-label"><b>demo</b> / one record through the pipeline</p>
     <div class="flex gap-2">
-      <button type="button" class="btn btn-primary sim-run" data-kind="good">▶ process a record</button>
-      <button type="button" class="btn sim-run" data-kind="bad">try a broken one</button>
+      <button type="button" class="btn btn-primary sim-run" data-kind="good">▶ <span class="sm:hidden">see it work</span><span class="hidden sm:inline">process a record</span></button>
+      <button type="button" class="btn sim-run sim-bad" data-kind="bad">try a broken one</button>
     </div>
   </div>
 
+  <div class="sim-body">
   <ol class="sim-track mt-4 flex flex-wrap gap-1.5" aria-label="Pipeline stages">
     {
       platformStages.map((s, i) => (
@@ -33,11 +34,19 @@ import { simulator } from '../data/simulator';
     </div>
   </div>
   <p class="mt-2 font-mono text-[9.5px] text-faint">synthetic sample data · no real formats or records</p>
+  </div>
 </div>
 
 <script type="application/json" id="sim-data" set:html={JSON.stringify({ stages: platformStages.map((s) => s.name), ...simulator })} />
 
 <style>
+  /* Phones: keep the first screen short; the demo opens on first run */
+  @media (max-width: 639px) {
+    #sim:not(.open) .sim-body,
+    #sim:not(.open) .sim-bad {
+      display: none;
+    }
+  }
   .sim-stage {
     font-size: 11px;
     border: 1px solid var(--color-line);
@@ -88,6 +97,7 @@ import { simulator } from '../data/simulator';
       .join('\n');
 
   async function run(kind: 'good' | 'bad') {
+    document.getElementById('sim')!.classList.add('open');
     const id = ++runId;
     const steps = data[kind];
     const wait = (ms: number) => new Promise((r) => setTimeout(r, reduce ? 60 : ms));
