@@ -9,8 +9,8 @@ export const profile = {
     open: true,
     target: 'SDE-2 · Backend Engineering',
     experience: '2+ yrs experience',
-    location: 'India',
-    notice: '',
+    location: '',
+    notice: '2 months',
   },
   about: [
     'Backend engineer at HiLabs, building the services behind a clinical data platform that ingests 1,000+ files a day for multiple US health plans. Most of my work sits where Python services meet Java orchestration and SQL that has to stay fast at tens of millions of rows.',

@@ -84,7 +84,6 @@ import { simulator } from '../data/simulator';
   const recordEl = document.getElementById('sim-record')!;
   const logEl = document.getElementById('sim-log')!;
   const buttons = [...document.querySelectorAll<HTMLButtonElement>('.sim-run')];
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
   let runId = 0;
 
@@ -100,7 +99,11 @@ import { simulator } from '../data/simulator';
     document.getElementById('sim')!.classList.add('open');
     const id = ++runId;
     const steps = data[kind];
-    const wait = (ms: number) => new Promise((r) => setTimeout(r, reduce ? 60 : ms));
+    // Same pacing for everyone (reduced motion only drops animations); a bit slower on phones,
+    // where the record and log panels stack and need more reading time
+    const small = matchMedia('(max-width: 639px)').matches;
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, small ? ms * 1.35 : ms));
+    if (small) document.getElementById('sim')!.scrollIntoView({ behavior: 'smooth', block: 'start' });
     stages.forEach((s) => (s.className = 'sim-stage'));
     logEl.innerHTML = '';
     let fields: Record<string, string> = {};
@@ -128,7 +131,7 @@ import { simulator } from '../data/simulator';
       li.innerHTML = `<span class="s">[${esc(data.stages[i].toLowerCase())}]</span> <span class="${st.status === 'fail' ? 'f' : ''}">${esc(st.log)}</span>`;
       logEl.appendChild(li);
 
-      await wait(i === 0 ? 900 : 760);
+      await wait(i === 0 ? 1100 : 950);
       stages[i].classList.remove('active');
       if (!st.status) stages[i].classList.add('done');
     }
