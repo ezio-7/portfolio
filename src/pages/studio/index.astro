@@ -101,10 +101,12 @@ const tabs = [
               <label for="jd-msg" class="stage-label">job description (optional)</label>
               <textarea id="jd-msg" rows="5" placeholder="Paste the JD to tailor the message…" class="st-input mt-2 w-full resize-y"></textarea>
             </div>
-            <div class="flex gap-1 rounded-full border border-line-2 p-0.5 font-mono text-[11px] w-fit" role="group">
+            <div class="flex flex-wrap gap-1 rounded-2xl border border-line-2 p-0.5 font-mono text-[11px] w-fit" role="group">
               <button type="button" class="msg-kind rounded-full px-3 py-1" data-kind="cover" aria-pressed="true">cover letter</button>
               <button type="button" class="msg-kind rounded-full px-3 py-1" data-kind="linkedin" aria-pressed="false">LinkedIn note</button>
               <button type="button" class="msg-kind rounded-full px-3 py-1" data-kind="referral" aria-pressed="false">referral ask</button>
+              <button type="button" class="msg-kind rounded-full px-3 py-1" data-kind="followup" aria-pressed="false">follow-up</button>
+              <button type="button" class="msg-kind rounded-full px-3 py-1" data-kind="thanks" aria-pressed="false">thank-you</button>
             </div>
             <input id="person" placeholder="recipient's name (optional)" class="st-input w-full" autocomplete="off" />
             <textarea id="msg-out" rows="14" class="st-input w-full resize-y font-mono text-[11.5px] leading-relaxed"></textarea>
@@ -126,11 +128,23 @@ const tabs = [
               </div>
             </div>
             <p id="insight-msg" class="font-mono text-[10.5px] text-faint"></p>
+            <div id="stats" class="hidden rounded-lg border border-line bg-surface p-3"></div>
+            <div id="nudges" class="hidden space-y-2"></div>
             <ul id="app-list" class="space-y-2"></ul>
           </section>
 
           <!-- SETTINGS -->
           <section data-panel="settings" class="hidden space-y-3 text-[12.5px]">
+            <p class="stage-label">sync across devices · github gist</p>
+            <p class="text-muted">Keeps your applications in one <b>private</b> gist so every browser you use sees the same tracker. Create a <b>classic</b> token at GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic), tick only <b>gist</b>, and paste it here on each device.</p>
+            <input id="gh-token" type="password" placeholder="paste GitHub token" class="st-input w-full" autocomplete="off" />
+            <div class="flex flex-wrap gap-2">
+              <button type="button" id="gh-save" class="btn btn-primary">Save &amp; sync</button>
+              <button type="button" id="gh-sync" class="btn">Sync now</button>
+              <button type="button" id="gh-clear" class="btn">Stop syncing</button>
+            </div>
+            <p id="gh-msg" class="font-mono text-[10.5px] text-faint"></p>
+            <hr class="border-line" />
             <p class="stage-label">goatcounter api key</p>
             <p class="text-muted">Lets the Applications tab show who opened your portfolio. In GoatCounter: <b>Settings → API → New API key</b>, tick only <b>“Read statistics”</b>, then paste it here.</p>
             <input id="gc-token" type="password" placeholder="paste API key" class="st-input w-full" autocomplete="off" />
@@ -212,7 +226,8 @@ const tabs = [
       import {
         loadApps, saveApps, getToken, setToken, slug, refLink, today, message, messagePrompt,
         fetchRefStats, ago, STATUSES, type App, type MsgKind, type RefStats,
-        resumeLink,
+        resumeLink, normalize, setStatus, touch, markDeleted, nudges, ics, stats, daysSince, RANK,
+        getGh, setGh, syncGist, onAppsSaved, type Nudge,
       } from '../../lib/studio';
 
       const source: string = JSON.parse(document.getElementById('tex-src')!.textContent!);
@@ -315,7 +330,8 @@ const tabs = [
       // ---------- messages ----------
       const ctx = () => ({
         company: companyEl.value.trim(), role: roleEl.value.trim(), person: $<HTMLInputElement>('person').value.trim(),
-        resume: resumeLink(companyEl.value.trim() ? ref() : ''), portfolio: link(), matched: last.matched, proofs: last.proofs, email: parse(source).header.email, phone: parse(source).header.phone,
+        resume: resumeLink(companyEl.value.trim() ? ref() : ''), portfolio: link(), matched: last.matched, proofs: last.proofs,
+        applied: apps.find((a) => a.id === activeId)?.date, email: parse(source).header.email, phone: parse(source).header.phone,
       });
       const renderMessage = () => {
         const text = message(kind, ctx());
@@ -346,13 +362,67 @@ const tabs = [
         if (!companyEl.value.trim()) { flash('add the company name first'); return companyEl.focus(); }
         const data = { company: companyEl.value.trim(), role: roleEl.value.trim(), ref: ref(), jd: jdEl.value, trim: trimEl.checked, summary: sumEl.checked };
         const existing = apps.find((a) => a.id === activeId) ?? apps.find((a) => a.ref === data.ref);
-        if (existing) Object.assign(existing, data);
-        else { const a: App = { id: crypto.randomUUID(), date: today(), status: 'saved', notes: '', ...data }; apps.unshift(a); activeId = a.id; }
+        if (existing) { Object.assign(existing, data, { score: last.score }); touch(existing); }
+        else {
+          const a = normalize({ id: crypto.randomUUID(), date: today(), status: 'saved', best: 'saved', notes: '', score: last.score, updated: new Date().toISOString(), ...data });
+          apps.unshift(a); activeId = a.id;
+        }
         persist();
         flash(existing ? 'application updated ✓' : 'saved to applications ✓');
       });
 
+      const pct = (n: number, of: number) => (of ? Math.round((n / of) * 100) : 0);
+      const renderStats = () => {
+        const st = stats(apps, insights);
+        const el = $('stats');
+        el.classList.toggle('hidden', !apps.some((a) => RANK[a.best] >= 1));
+        const top = st.funnel[0].n || 1;
+        el.innerHTML = `<p class="stage-label mb-2">pipeline</p>
+          ${st.funnel.map((f) => `<div class="mb-1 flex items-center gap-2 font-mono text-[10.5px]">
+            <span class="w-16 text-faint">${f.stage}</span>
+            <span class="h-2 rounded-full bg-accent" style="width:${Math.max(pct(f.n, top), 3)}%"></span>
+            <span class="text-ink">${f.n}</span></div>`).join('')}
+          <p class="mt-2 text-[11.5px] text-muted">response rate <b class="text-ink">${st.response}%</b>${st.opened !== null ? ` · opened your link <b class="text-ink">${st.opened}%</b>` : ''}</p>
+          ${st.scoreWith !== null && st.scoreWithout !== null ? `<p class="mt-0.5 text-[11.5px] text-muted">avg JD match: reached interview <b class="text-ink">${st.scoreWith}%</b> · didn't <b class="text-ink">${st.scoreWithout}%</b></p>` : ''}`;
+      };
+      let pending: Nudge[] = [];
+      const renderNudges = () => {
+        pending = nudges(apps);
+        const el = $('nudges');
+        el.classList.toggle('hidden', !pending.length);
+        el.innerHTML = `<p class="stage-label">needs a nudge · ${pending.length}</p>` + pending.map((n, i) => `
+          <div class="rounded-lg border border-[color-mix(in_srgb,var(--color-warn)_45%,transparent)] bg-surface px-3 py-2">
+            <p class="text-[12.5px] text-ink">${esc(n.app.company)} <span class="text-muted">· ${esc(n.reason)}</span></p>
+            <div class="mt-1 flex flex-wrap gap-3 font-mono text-[10.5px]">
+              <button class="hover:text-accent" data-nudge="write" data-i="${i}">write the ${n.kind === 'thanks' ? 'thank-you' : 'follow-up'}</button>
+              <button class="hover:text-accent" data-nudge="ics" data-i="${i}">calendar reminder</button>
+              <button class="hover:text-accent" data-nudge="sent" data-i="${i}">mark sent</button>
+            </div>
+          </div>`).join('');
+      };
+      $('nudges').addEventListener('click', (e) => {
+        const b = (e.target as HTMLElement).closest<HTMLElement>('[data-nudge]');
+        if (!b) return;
+        const n = pending[+b.dataset.i!];
+        if (b.dataset.nudge === 'write') {
+          load(n.app);
+          kind = n.kind;
+          document.querySelectorAll('.msg-kind').forEach((x) => x.setAttribute('aria-pressed', String((x as HTMLElement).dataset.kind === kind)));
+          show('messages');
+        }
+        if (b.dataset.nudge === 'ics') {
+          const what = n.kind === 'thanks' ? 'Send thank-you' : 'Follow up';
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([ics(`${what}: ${n.app.company}`, `${n.app.role} · ${n.reason}\nOpen the studio: ${location.href}`)], { type: 'text/calendar' }));
+          a.download = `${what.toLowerCase().replace(/ /g, '-')}-${n.app.ref}.ics`;
+          a.click();
+        }
+        if (b.dataset.nudge === 'sent') { n.app.nudgedAt = today(); touch(n.app); persist(); flash('marked as sent ✓'); }
+      });
+
       const renderApps = () => {
+        renderStats();
+        renderNudges();
         $('app-count').textContent = String(apps.length);
         $('app-list').innerHTML = apps.length ? apps.map((a) => {
           const st = insights.get(a.ref);
@@ -386,13 +456,13 @@ const tabs = [
         if (act === 'pdf') { load(a); setTimeout(() => window.print(), 150); }
         if (act === 'tex') downloadTex(tailor(source, a.jd, { trim: a.trim, summary: a.summary }).tex, `Ayush_Anand_Resume_${a.ref}`);
         if (act === 'link') copy(refLink(a.ref), 'link');
-        if (act === 'del' && confirm(`Delete ${a.company}?`)) { apps = apps.filter((x) => x !== a); persist(); }
+        if (act === 'del' && confirm(`Delete ${a.company}?`)) { markDeleted(a.id); apps = apps.filter((x) => x !== a); persist(); }
       });
       $('app-list').addEventListener('change', (e) => {
         const el = e.target as HTMLInputElement | HTMLSelectElement;
         const a = apps.find((x) => x.id === el.closest<HTMLElement>('.app')!.dataset.id)!;
-        if (el.dataset.act === 'status') a.status = el.value as App['status'];
-        if (el.dataset.act === 'notes') a.notes = el.value;
+        if (el.dataset.act === 'status') { setStatus(a, el.value as App['status']); saveApps(apps); renderApps(); return; }
+        if (el.dataset.act === 'notes') { a.notes = el.value; touch(a); }
         saveApps(apps);
       });
       $('export').addEventListener('click', () => {
@@ -405,7 +475,7 @@ const tabs = [
         const f = (e.target as HTMLInputElement).files?.[0];
         if (!f) return;
         try {
-          const incoming: App[] = JSON.parse(await f.text());
+          const incoming: App[] = (JSON.parse(await f.text()) as Partial<App>[]).map(normalize);
           const ids = new Set(apps.map((a) => a.id));
           apps = [...apps, ...incoming.filter((a) => a.id && a.company && !ids.has(a.id))];
           persist();
@@ -431,6 +501,37 @@ const tabs = [
         setToken(v); $<HTMLInputElement>('gc-token').value = '••••••••'; flash('key saved in this browser ✓');
       });
       $('gc-clear').addEventListener('click', () => { setToken(''); $<HTMLInputElement>('gc-token').value = ''; flash('key removed'); });
+
+      // ---------- github gist sync ----------
+      const ghMsg = (m: string) => ($('gh-msg').textContent = m);
+      let syncing = false, again = false;
+      const sync = async () => {
+        const token = getGh();
+        if (!token) return;
+        if (syncing) { again = true; return; }
+        syncing = true;
+        ghMsg('syncing…');
+        try {
+          const merged = await syncGist(token, apps);
+          apps = merged;
+          localStorage.setItem('studio.apps', JSON.stringify(apps)); // save without re-triggering sync
+          renderApps();
+          ghMsg(`synced ${new Date().toLocaleTimeString()} · ${apps.length} applications`);
+        } catch (err) { ghMsg((err as Error).message); }
+        syncing = false;
+        if (again) { again = false; sync(); }
+      };
+      let syncTimer = 0;
+      onAppsSaved(() => { clearTimeout(syncTimer); syncTimer = window.setTimeout(sync, 2000); });
+      $<HTMLInputElement>('gh-token').value = getGh() ? '••••••••' : '';
+      $('gh-save').addEventListener('click', () => {
+        const v = $<HTMLInputElement>('gh-token').value;
+        if (!v || v.startsWith('•')) return flash('paste a token first');
+        setGh(v); $<HTMLInputElement>('gh-token').value = '••••••••'; sync();
+      });
+      $('gh-sync').addEventListener('click', () => (getGh() ? sync() : ghMsg('add a token first')));
+      $('gh-clear').addEventListener('click', () => { setGh(''); $<HTMLInputElement>('gh-token').value = ''; ghMsg('sync stopped; your applications stay in this browser'); });
+      if (getGh()) sync();
 
       document.fonts.ready.then(run);
     </script>
