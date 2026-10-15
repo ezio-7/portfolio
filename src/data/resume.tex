@@ -1,0 +1,239 @@
+%------------------------
+% Resume Template
+% Author: Ayush Anand
+% License: MIT
+%------------------------
+
+\documentclass[a4paper,10pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{enumitem}
+\usepackage[pdftex]{hyperref}
+\usepackage{fancyhdr}
+
+% ATS: embed a real Unicode text layer so parsers read the PDF correctly
+\input{glyphtounicode}
+\pdfgentounicode=1
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Margins
+\addtolength{\oddsidemargin}{-0.530in}
+\addtolength{\evensidemargin}{-0.375in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.45in}
+\addtolength{\textheight}{1in}
+
+\urlstyle{rm}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+\setlength{\parindent}{0pt}
+
+% Sections
+\titleformat{\section}{\scshape\raggedright\large}{}{0em}{}[\color{black}\titlerule]
+\titlespacing*{\section}{0pt}{7pt}{4pt}
+
+%-------------------------
+% Custom commands
+
+% Entry heading: bold title on the left, dates on the right
+\newcommand{\resumeSubheading}[2]{
+  \item \begin{tabular*}{\linewidth}[t]{@{}l@{\extracolsep{\fill}}r@{}}
+    \textbf{#1} & #2 \\
+  \end{tabular*}
+}
+
+% Entry heading with a second italic line (e.g. degree)
+\newcommand{\resumeSubheadingTwo}[4]{
+  \item \begin{tabular*}{\linewidth}[t]{@{}l@{\extracolsep{\fill}}r@{}}
+    \textbf{#1} & #2 \\
+    \textit{#3} & \textit{#4} \\
+  \end{tabular*}
+}
+
+% One-line italic context under an entry heading
+\newcommand{\resumeContext}[1]{\par\vspace{-1pt}\textit{#1}\par}
+
+% Project block inside a role: bold name | stack
+\newcommand{\resumeProjectHeading}[2]{\item \textbf{#1} \textbar{} \textit{#2}}
+
+\newcommand{\resumeItem}[1]{\item #1}
+
+% Level 1: entries
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=12pt, label=\textbullet, topsep=0pt, itemsep=4pt, parsep=0pt, partopsep=0pt]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+% Level 2: bullets under an entry
+\newcommand{\resumeItemListStart}{\begin{itemize}[leftmargin=16pt, label=$\circ$, topsep=1pt, itemsep=0.5pt, parsep=0pt, partopsep=0pt]}
+\newcommand{\resumeItemListEnd}{\end{itemize}}
+% Level 2: project blocks under a role
+\newcommand{\resumeProjectListStart}{\begin{itemize}[leftmargin=16pt, label=$\circ$, topsep=2pt, itemsep=2.5pt, parsep=0pt, partopsep=0pt]}
+\newcommand{\resumeProjectListEnd}{\end{itemize}}
+% Level 3: sub-points under a project
+\newcommand{\resumeSubPointListStart}{\begin{itemize}[leftmargin=14pt, label=--, topsep=0.5pt, itemsep=0.5pt, parsep=0pt, partopsep=0pt]}
+\newcommand{\resumeSubPointListEnd}{\end{itemize}}
+
+%%%%%%  CV STARTS HERE  %%%%%%
+
+\begin{document}
+
+%----------HEADING-----------------
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+  \textbf{{\LARGE Ayush Anand}} & Email: \href{mailto:ayushanand.app@gmail.com}{ayushanand.app@gmail.com} \\
+  \href{https://www.linkedin.com/in/ayush-anand-917ab2220/}{linkedin.com/in/ayush-anand-917ab2220} \textbar{}
+  \href{https://github.com/ezio-7}{github.com/ezio-7} \textbar{}
+  \href{https://ezio-7.github.io/portfolio/?ref=resume}{Portfolio} & Mobile: \href{tel:+918340705093}{+91-8340705093} \\
+\end{tabular*}
+
+\small
+
+%-----------SUMMARY-----------------
+\section{Summary}
+Backend Engineer with 2+ years of experience building services in \textbf{Python} and \textbf{Java}, backed by \textbf{SQL} that stays fast at tens of millions of rows. Currently building the backend of a healthcare data platform on \textbf{Azure Kubernetes Service}: \textbf{Spring Boot} microservices, query performance tuning, and cloud-agnostic design across \textbf{Azure} and \textbf{AWS}.
+
+%-----------WORK EXPERIENCE-----------------
+\section{Work Experience}
+\resumeSubHeadingListStart
+
+  \resumeSubheading{Software Development Engineer (SDE) \textbar{} HiLabs India Pvt. Ltd.}{Sep 2025 -- Present}
+  \resumeContext{Healthcare data ingestion and data-quality platform for multiple US health plans, processing 1,000+ files/day across US states}
+  \resumeProjectListStart
+
+    \resumeProjectHeading{Clinical Data Ingestion Pipeline}{Python, Pandas, PyArrow, MySQL}
+    \resumeSubPointListStart
+      \resumeItem{Onboarded \textbf{20+} provider, lab and HIE sources via a factory-based pre-processing framework}
+      \resumeItem{Built multithreaded claims and lab \textbf{ETL} for files up to \textbf{100 GB}, with a database-driven DQ rules engine}
+      \resumeItem{Hardened ingestion against encoding, delimiter, multiline-CSV and malformed-Excel issues}
+      \resumeItem{Automated refresh of a \textbf{1.9M}-code clinical code library (ICD, CPT, LOINC, SNOMED) from UMLS releases}
+      \resumeItem{Added manual-review reason codes for AI-mapped files, surfaced in load-status reports and the UI}
+    \resumeSubPointListEnd
+
+    \resumeProjectHeading{Fallout Remediation}{Python, MySQL, SQLAlchemy}
+    \resumeSubPointListStart
+      \resumeItem{Designed and built a system that tracks whether providers fix previously failed records in later files}
+      \resumeItem{Built state-partitioned storage, a rule-based remediation engine, daily archival and remediation reports}
+      \resumeItem{Made runs idempotent and crash-resumable, consistent across reprocessing and manual rejection}
+      \resumeItem{Cut the core query from \textbf{34 hrs to 9 min (220$\times$)} by replacing large \texttt{IN}-list scans with partition-pruned joins}
+    \resumeSubPointListEnd
+
+    \resumeProjectHeading{Member Matching}{Python, Java, MySQL, PostgreSQL, Azure AI Search}
+    \resumeSubPointListStart
+      \resumeItem{Built health-plan-specific member matching (ID-based, state-scoped, demographic) for every clinical record}
+      \resumeItem{Migrated matching from Azure AI Search to MySQL/PostgreSQL, saving \textbf{$\sim$\$94K/year} with \textbf{$\sim$3$\times$} faster lookups}
+      \resumeItem{Automated member-extract indexing, re-indexing \textbf{43M+} records with multithreaded, state-partitioned loads}
+    \resumeSubPointListEnd
+
+    \resumeProjectHeading{Reporting \& Analytics}{Python, SQL, openpyxl}
+    \resumeSubPointListStart
+      \resumeItem{Built the platform's reporting layer: summary view, state breakouts, DQ and member-match fallout reports}
+      \resumeItem{Streamed multi-sheet Excel fallout reports with per-cell failure highlighting for files of \textbf{1M+} rows}
+      \resumeItem{Reconciled critical-fallout counts across dashboard, load-status and fallout reports for business users}
+      \resumeItem{Built member analytics (net-new members, coverage, penetration \%) with daily and monthly rollup jobs}
+      \resumeItem{Built duplicate-file and provider layout-change detection using file- and record-level hashing}
+    \resumeSubPointListEnd
+
+    \resumeProjectHeading{Workflow Orchestration \& Large-File Processing}{Java, Spring Boot, ShedLock}
+    \resumeSubPointListStart
+      \resumeItem{Built \textbf{Spring Boot} fetcher/executor \textbf{microservices} with record locking, driving each file through $\sim$17 stages}
+      \resumeItem{Built a self-healing framework with heartbeat-based stuck-load detection and automatic retry}
+      \resumeItem{Split files up to \textbf{100 GB} into parent/child chunk loads with stage-wise retry, load-tested at \textbf{20+} in parallel}
+      \resumeItem{Removed the Solr dependency from the Java orchestrator, deleting $\sim$\textbf{4K} lines of indexing code}
+    \resumeSubPointListEnd
+
+    \resumeProjectHeading{Cloud-Agnostic Platform}{Python, Java, PostgreSQL, Liquibase, Azure, AWS}
+    \resumeSubPointListStart
+      \resumeItem{Built a shared DB layer with \textbf{connection pooling}, Azure AD / AWS IAM token auth and retry with backoff}
+      \resumeItem{Abstracted cloud SDKs behind Java interfaces and Python storage handlers for Azure Blob, S3 and local}
+      \resumeItem{Migrated MySQL to \textbf{PostgreSQL on AWS RDS} using JPA/Hibernate and Liquibase, with parity testing}
+    \resumeSubPointListEnd
+
+    \resumeProjectHeading{Infrastructure, Security \& Releases}{Kubernetes, Helm, Docker, Azure DevOps}
+    \resumeSubPointListStart
+      \resumeItem{Deployed on \textbf{Azure Kubernetes Service} with \textbf{Helm} and \textbf{KEDA} autoscaling, monitored via Splunk and Grafana}
+      \resumeItem{Implemented Entra ID SSO and RBAC in Spring Security, with Managed Identity for secret-free SQL/Blob access}
+      \resumeItem{Fixed VAPT/HITRUST findings, cut HIGH container CVEs by \textbf{38\%}, and shipped $\sim$15 production releases via \textbf{CI/CD}}
+    \resumeSubPointListEnd
+
+  \resumeProjectListEnd
+
+  \resumeSubheading{Analyst \textbar{} EY Global Delivery Services}{Jul 2024 -- Aug 2025}
+  \resumeItemListStart
+    \resumeItem{Built the complete backend of an OPM Model application from scratch using \textbf{FastAPI}, \textbf{MySQL} and SQLAlchemy}
+    \resumeItem{Developed the backend of a Tax Cover Letter application for EY Germany using \textbf{FastAPI} and \textbf{MongoDB}}
+    \resumeItem{Built the backend of a document summarization web application using \textbf{Flask} and \textbf{MySQL}}
+    \resumeItem{Implemented discount prediction and customer segmentation models in \textbf{Python} for EY Germany}
+  \resumeItemListEnd
+
+\resumeSubHeadingListEnd
+
+%-----------INTERNSHIPS-----------------
+\section{Internships}
+\resumeSubHeadingListStart
+
+  \resumeSubheading{Software Development Intern \textbar{} Noise}{May 2024 -- Jul 2024}
+  \resumeItemListStart
+    \resumeItem{Migrated the platform from a monolith to \textbf{microservices} and from single-tenant to \textbf{multi-tenant} architecture}
+    \resumeItem{Designed and built the Sleep 2.0 \textbf{API}, including its calculations and database migration, from scratch}
+  \resumeItemListEnd
+
+  \resumeSubheading{Software Development Intern \textbar{} Vayuvoy Pvt. Ltd.}{May 2023 -- Jul 2023}
+  \resumeItemListStart
+    \resumeItem{Built a queue management system with \textbf{NestJS} and \textbf{RabbitMQ} using priority queues over AMQP}
+    \resumeItem{Created \textbf{REST APIs} for dynamic queue creation, and consumers with acknowledgements to prevent data loss}
+  \resumeItemListEnd
+
+  \resumeSubheading{Software Development Intern \textbar{} Resurgent PMC}{May 2022 -- Aug 2022}
+  \resumeItemListStart
+    \resumeItem{Built a secure, scalable proctoring web app with \textbf{Node.js}, \textbf{Socket.io} and \textbf{Next.js} (TypeScript)}
+    \resumeItem{Added real-time monitoring with PeerJS and cheating detection with \textbf{TensorFlow.js} (phone use, multiple faces)}
+  \resumeItemListEnd
+
+\resumeSubHeadingListEnd
+
+%-----------PROJECTS-----------------
+\section{Projects}
+\resumeSubHeadingListStart
+
+  \resumeSubheading{Steel Defect Detection \textbar{} Bachelor Thesis Project}{Mar 2024 -- Apr 2024}
+  \resumeItemListStart
+    \resumeItem{Developed a steel defect detection and segmentation system using \textbf{YOLOv8} and \textbf{U-Net}}
+    \resumeItem{Improved accuracy with annotation decoding, binary masks and augmentation, and tuned BCE, Dice and IoU losses}
+  \resumeItemListEnd
+
+  \resumeSubheading{Yelp Camp \textbar{} Self Project}{Sep 2022}
+  \resumeItemListStart
+    \resumeItem{Developed a campground review website using \textbf{Node.js}, \textbf{Express.js}, \textbf{MongoDB} and Bootstrap}
+    \resumeItem{Implemented secure user authentication and authorization, with full CRUD for campgrounds and reviews}
+  \resumeItemListEnd
+
+\resumeSubHeadingListEnd
+
+%-----------SKILLS-----------------
+\section{Technical Skills}
+\textbf{Languages:} Python, Java, SQL, C++, JavaScript, TypeScript \\[1pt]
+\textbf{Frameworks \& Libraries:} FastAPI, Flask, Spring Boot, SQLAlchemy, Pydantic, Pandas, Node.js \\[1pt]
+\textbf{Databases:} MySQL, PostgreSQL, MongoDB, Redis \\[1pt]
+\textbf{Cloud \& DevOps:} Azure, AWS, Kubernetes, Docker, Helm, CI/CD, Git
+
+%-----------EDUCATION-----------------
+\section{Education}
+\resumeSubHeadingListStart
+  \resumeSubheadingTwo{Indian Institute of Technology (IIT) Kharagpur}{Dec 2020 -- Apr 2024}
+    {Bachelor of Technology in Metallurgical and Materials Engineering}{GPA: 8.57/10}
+\resumeSubHeadingListEnd
+
+%-----------AWARDS-----------------
+\section{Awards and Achievements}
+\resumeItemListStart
+  \resumeItem{Ranked in the top 1.6\% of 2.5 Lakh+ in JEE Advanced and the top 0.6\% of 10 Lakh+ in JEE Main (2020)}
+  \resumeItem{Highest rating of \textbf{1798} on CodeChef and \textbf{1160} on Codeforces; solved \textbf{500+} problems across platforms}
+  \resumeItem{Selected among the top \textbf{5\%} of applicants for Amazon ML Summer School}
+\resumeItemListEnd
+
+\end{document}

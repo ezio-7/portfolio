@@ -7,7 +7,8 @@ export default defineConfig({
   site: 'https://ezio-7.github.io',
   base: '/portfolio',
   trailingSlash: 'always',
-  integrations: [sitemap()],
+  // the studio is unlisted: keep it out of the sitemap
+  integrations: [sitemap({ filter: (page) => !page.includes('/studio') })],
   vite: {
     plugins: [tailwindcss()],
   },

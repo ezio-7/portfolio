@@ -1,0 +1,196 @@
+---
+// Unlisted résumé studio: paste a JD → tailored résumé (PDF / .tex) + a ready prompt for Claude.
+// Not linked anywhere, excluded from the sitemap, no-index, and no analytics.
+import '../../styles/global.css';
+import resumeTex from '../../data/resume.tex?raw';
+import cmRoman from 'computer-modern/fonts/cmu-serif-500-roman.woff2?url';
+import cmItalic from 'computer-modern/fonts/cmu-serif-500-italic.woff2?url';
+import cmBold from 'computer-modern/fonts/cmu-serif-700-roman.woff2?url';
+import cmBoldItalic from 'computer-modern/fonts/cmu-serif-700-italic.woff2?url';
+import cmMono from 'computer-modern/fonts/cmu-typewriter-text-500-roman.woff2?url';
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const fontCss = `
+@font-face { font-family: 'CMU Serif'; font-style: normal; font-weight: 400; src: url(${cmRoman}) format('woff2'); }
+@font-face { font-family: 'CMU Serif'; font-style: italic; font-weight: 400; src: url(${cmItalic}) format('woff2'); }
+@font-face { font-family: 'CMU Serif'; font-style: normal; font-weight: 700; src: url(${cmBold}) format('woff2'); }
+@font-face { font-family: 'CMU Serif'; font-style: italic; font-weight: 700; src: url(${cmBoldItalic}) format('woff2'); }
+@font-face { font-family: 'CMU Typewriter'; font-style: normal; font-weight: 400; src: url(${cmMono}) format('woff2'); }`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Ayush_Anand_Resume</title>
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <style set:html={fontCss}></style>
+  </head>
+  <body>
+    <div class="ui flex min-h-screen flex-col">
+      <header class="flex items-center justify-between border-b border-line px-5 py-3">
+        <p class="stage-label"><b>studio</b> / résumé tailoring · unlisted, not tracked</p>
+        <a href={base} class="font-mono text-[11px] text-faint hover:text-accent">← portfolio</a>
+      </header>
+
+      <div class="grid flex-1 gap-5 p-5 lg:grid-cols-[400px_1fr]">
+        <aside class="space-y-4 lg:sticky lg:top-5 lg:h-fit">
+          <div>
+            <label for="jd" class="stage-label">job description</label>
+            <textarea id="jd" rows="12" placeholder="Paste the job description here…"
+              class="mt-2 w-full resize-y rounded-lg border border-line-2 bg-surface p-3 text-[12.5px] text-ink outline-none focus:border-accent"></textarea>
+          </div>
+
+          <div class="space-y-1.5 text-[12.5px]">
+            <label class="flex items-center gap-2"><input type="checkbox" id="opt-trim" checked class="accent-[var(--color-accent)]" /> trim bullets that don't match</label>
+            <label class="flex items-center gap-2"><input type="checkbox" id="opt-summary" checked class="accent-[var(--color-accent)]" /> name matched strengths in the summary</label>
+          </div>
+
+          <div id="result" class="hidden rounded-lg border border-line bg-surface p-3">
+            <p class="text-[18px] font-medium text-accent"><span id="r-score">0</span>% match</p>
+            <p class="mt-2 stage-label">matched</p>
+            <p id="r-matched" class="mt-1 text-[12px] text-ink/90"></p>
+            <p class="mt-2 stage-label">gaps</p>
+            <p id="r-gaps" class="mt-1 text-[12px] text-warn-ui"></p>
+          </div>
+
+          <p id="pages" class="font-mono text-[11px] text-faint"></p>
+
+          <div class="flex flex-wrap gap-2">
+            <button type="button" id="dl-pdf" class="btn btn-primary">Download PDF</button>
+            <button type="button" id="dl-tex" class="btn">Download .tex</button>
+            <button type="button" id="copy-prompt" class="btn">Copy prompt for Claude</button>
+          </div>
+          <p class="font-mono text-[10px] leading-relaxed text-faint">
+            PDF opens the print dialog: choose “Save as PDF”, paper A4, margins default, and turn off headers and footers.
+            The tailoring only reorders and trims your own bullets; it never writes new claims.
+          </p>
+          <p id="msg" class="font-mono text-[11px] text-accent"></p>
+        </aside>
+
+        <section class="overflow-x-auto">
+          <article id="paper" class="paper"></article>
+        </section>
+      </div>
+    </div>
+
+    <script type="application/json" id="tex-src" set:html={JSON.stringify(resumeTex)} />
+
+    <style is:global>
+      .text-warn-ui { color: var(--color-warn); }
+      .paper {
+        width: 210mm; min-height: 297mm; margin: 0 auto; padding: 13mm 12.5mm;
+        background: #fff; color: #000; box-shadow: 0 10px 40px rgb(0 0 0 / 0.45);
+        font-family: 'CMU Serif', 'Latin Modern Roman', Georgia, serif; font-size: 9pt; line-height: 1.24;
+      }
+      .paper a { color: inherit; text-decoration: none; }
+      .paper code { font-family: 'CMU Typewriter', monospace; font-size: 0.95em; }
+      .paper .r-head { display: flex; justify-content: space-between; align-items: flex-end; font-size: 10pt; line-height: 1.25; }
+      .paper .r-head h1 { font-size: 17.3pt; font-weight: 700; line-height: 1.1; }
+      .paper .r-head .right { text-align: right; }
+      .paper h2 {
+        font-variant: small-caps; font-size: 12pt; font-weight: 400; letter-spacing: 0.01em;
+        border-bottom: 0.5pt solid #000; margin: 7pt 0 3.5pt; padding-bottom: 0.5pt;
+      }
+      .paper .row { display: flex; justify-content: space-between; gap: 12pt; }
+      .paper ul { margin: 0; }
+      .paper ul.l1 { list-style: disc; padding-left: 12pt; }
+      .paper ul.l1 > li { margin-top: 4pt; }
+      .paper ul.l1 > li:first-child { margin-top: 0; }
+      .paper ul.l2 { list-style: circle; padding-left: 16pt; margin-top: 1pt; }
+      .paper ul.l2 > li { margin-top: 1pt; }
+      .paper ul.l2.projects > li { margin-top: 2.5pt; }
+      .paper ul.l3 { list-style: '–  '; padding-left: 14pt; }
+      .paper .ctx { font-style: italic; margin: 1pt 0 0; }
+      .paper .skills p { margin: 0.5pt 0; }
+      .paper li, .paper .row { break-inside: avoid; }
+      .paper ul.l2.projects > li { break-inside: avoid; }
+      @media print {
+        @page { size: A4; margin: 13mm 12.5mm; }
+        html, body { background: #fff !important; }
+        .ui { min-height: 0 !important; }
+        .ui > header, aside { display: none !important; }
+        .ui .grid { display: block; padding: 0; }
+        .paper { width: auto; min-height: 0; padding: 0; margin: 0; box-shadow: none; }
+      }
+    </style>
+
+    <script>
+      import { parse, tailor, texToHtml, claudePrompt, type Model, type Role } from '../../lib/resume';
+
+      const source: string = JSON.parse(document.getElementById('tex-src')!.textContent!);
+      const $ = (id: string) => document.getElementById(id)!;
+      const jdEl = $('jd') as HTMLTextAreaElement;
+      const trimEl = $('opt-trim') as HTMLInputElement, sumEl = $('opt-summary') as HTMLInputElement;
+      let current = source;
+
+      const bullets = (cls: string, items: { tex: string }[]) =>
+        `<ul class="${cls}">${items.map((b) => `<li>${texToHtml(b.tex)}</li>`).join('')}</ul>`;
+      const role = (r: Role) => `
+        <li>
+          <div class="row"><b>${texToHtml(r.title)}</b><span>${texToHtml(r.dates)}</span></div>
+          ${r.context ? `<p class="ctx">${texToHtml(r.context)}</p>` : ''}
+          ${r.blocks.length ? `<ul class="l2 projects">${r.blocks.map((b) => `<li><b>${texToHtml(b.title)}</b> | <i>${texToHtml(b.stack)}</i>${bullets('l3', b.bullets)}</li>`).join('')}</ul>` : ''}
+          ${r.bullets.length ? bullets('l2', r.bullets) : ''}
+        </li>`;
+
+      const render = (m: Model) => {
+        const h = m.header;
+        let html = `<div class="r-head">
+          <div><h1>${h.name}</h1><p>${h.links.map((l) => `<a href="${l.href}">${texToHtml(l.text)}</a>`).join(' | ')}</p></div>
+          <div class="right"><p>Email: <a href="mailto:${h.email}">${h.email}</a></p><p>Mobile: ${h.phone}</p></div>
+        </div>`;
+        for (const s of m.sections) {
+          html += `<h2>${texToHtml(s.title)}</h2>`;
+          if (s.kind === 'summary') html += `<p>${texToHtml(s.tex)}</p>`;
+          if (s.kind === 'roles') html += `<ul class="l1">${s.roles.map(role).join('')}</ul>`;
+          if (s.kind === 'skills') html += `<div class="skills">${s.rows.map((r) => `<p><b>${texToHtml(r.label)}:</b> ${r.items.map(texToHtml).join(', ')}</p>`).join('')}</div>`;
+          if (s.kind === 'education') html += `<ul class="l1"><li><div class="row"><b>${texToHtml(s.school)}</b><span>${texToHtml(s.dates)}</span></div><div class="row"><i>${texToHtml(s.degree)}</i><i>${texToHtml(s.gpa)}</i></div></li></ul>`;
+          if (s.kind === 'list') html += bullets('l2', s.bullets);
+        }
+        $('paper').innerHTML = html;
+        // page estimate: printable height of an A4 page with these margins
+        const mm = 96 / 25.4, pageH = (297 - 26) * mm;
+        const contentH = $('paper').scrollHeight - 26 * mm;
+        const pages = contentH / pageH;
+        $('pages').textContent = `≈ ${pages.toFixed(1)} pages${pages > 2.02 ? ' · over two pages, try trimming' : ''}`;
+      };
+
+      const run = () => {
+        const jd = jdEl.value;
+        const r = tailor(source, jd, { trim: trimEl.checked, summary: sumEl.checked });
+        current = r.tex;
+        render(parse(current));
+        $('result').classList.toggle('hidden', !jd.trim());
+        $('r-score').textContent = String(r.score);
+        $('r-matched').textContent = r.matched.join(' · ') || 'none recognised';
+        $('r-gaps').textContent = r.gaps.join(' · ') || 'none';
+      };
+
+      let t = 0;
+      jdEl.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(run, 250); });
+      trimEl.addEventListener('change', run);
+      sumEl.addEventListener('change', run);
+
+      const flash = (m: string) => { $('msg').textContent = m; setTimeout(() => ($('msg').textContent = ''), 2500); };
+      $('dl-pdf').addEventListener('click', () => window.print());
+      $('dl-tex').addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([current], { type: 'application/x-tex' }));
+        a.download = 'Ayush_Anand_Resume.tex';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+      $('copy-prompt').addEventListener('click', async () => {
+        if (!jdEl.value.trim()) { flash('paste a job description first'); jdEl.focus(); return; }
+        await navigator.clipboard.writeText(claudePrompt(jdEl.value, source));
+        flash('prompt copied ✓ paste it into Claude');
+      });
+
+      // fonts first, so the page estimate is measured with the real metrics
+      document.fonts.ready.then(run);
+    </script>
+  </body>
+</html>
