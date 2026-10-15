@@ -8,6 +8,11 @@ const snapshot = [h.target, h.experience, h.location, h.notice && `Notice: ${h.n
 <section id="top" class="relative pt-20 pb-16 sm:pt-28">
   <div class="grid-bg pointer-events-none absolute inset-0 -z-10"></div>
 
+  <p id="ref-greeting" hidden class="mb-6 inline-flex items-center gap-2 rounded-full border border-line-2 bg-surface px-3 py-1 text-[12.5px] text-ink">
+    👋 Hi <span class="ref-name font-medium text-accent"></span> team, thanks for taking a look.
+    <button type="button" class="ml-1 text-faint hover:text-ink" aria-label="Dismiss">✕</button>
+  </p>
+
   <div class="flex items-center gap-4">
     <div class="relative shrink-0">
       <img
@@ -53,7 +58,9 @@ const snapshot = [h.target, h.experience, h.location, h.notice && `Notice: ${h.n
     <a class="btn" href={profile.links.linkedin} target="_blank" rel="noopener">LinkedIn ↗</a>
     <a class="btn" href={`mailto:${profile.email}`}>Email</a>
     <button type="button" class="btn tour-start border-accent/50 text-accent">▶ 30-sec tour</button>
-    <button type="button" class="btn palette-open ml-auto hidden sm:inline-flex" aria-label="Open command palette">
+    <button type="button" class="btn fit-open">✓ fit check</button>
+    <button type="button" class="btn theme-toggle ml-auto px-2.5" aria-label="Toggle light / dark theme">☀</button>
+    <button type="button" class="btn palette-open hidden sm:inline-flex" aria-label="Open command palette">
       <kbd class="font-mono text-[10.5px] text-faint">⌘K</kbd>
     </button>
   </div>

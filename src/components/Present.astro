@@ -1,0 +1,131 @@
+---
+import { profile } from '../data/profile';
+import { caseStudies } from '../data/caseStudies';
+
+// One-line headline per case for the intro slide
+const headline: Record<string, string> = {
+  'fallout-remediation': '34 hrs → 9 min',
+  'member-matching': '~$94K/yr saved',
+  orchestration: '1,000+ files/day, self-healing',
+  'cloud-agnostic': 'Azure + AWS, one codebase',
+};
+---
+
+<dialog id="deck" aria-label="Presentation">
+  <div class="deck-slide flex h-full flex-col justify-center px-8 sm:px-16">
+    <div class="deck-intro">
+      <p class="stage-label"><b>presentation</b> / {caseStudies.length} systems</p>
+      <h2 class="mt-3 text-[34px] leading-tight font-semibold tracking-tight sm:text-[44px]">{profile.name}</h2>
+      <p class="mt-2 font-mono text-[14px] text-muted">{profile.role} · {profile.focus.join(' · ')}</p>
+      <ol class="mt-10 space-y-3">
+        {caseStudies.map((c, i) => (
+          <li class="flex items-baseline gap-4 text-[18px]">
+            <span class="font-mono text-[12px] text-accent">{String(i + 1).padStart(2, '0')}</span>
+            <span>{c.title}</span>
+            <span class="hidden text-[13px] text-faint sm:inline">{headline[c.id]}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+    <div class="deck-outro hidden">
+      <p class="stage-label"><b>thanks</b> / questions?</p>
+      <h2 class="mt-3 text-[34px] font-semibold tracking-tight sm:text-[44px]">Let's talk.</h2>
+      <p class="mt-4 font-mono text-[15px] text-muted">{profile.email}</p>
+      <p class="mt-1 font-mono text-[13px] text-faint">ezio-7.github.io/portfolio</p>
+    </div>
+  </div>
+</dialog>
+
+<style>
+  dialog#deck {
+    width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh; margin: 0; padding: 0; border: 0;
+    background: var(--color-bg); color: var(--color-ink);
+  }
+  dialog#deck::backdrop { background: var(--color-bg); }
+  /* case-study panels become full-screen slides */
+  :global(html.present dialog.arch) {
+    width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh; margin: 0;
+  }
+  :global(html.present dialog.arch::backdrop) { background: var(--color-bg); }
+  :global(html.present dialog.arch > .card) {
+    height: 100vh; max-height: 100vh; border-radius: 0; border: 0; padding: 40px 6vw 64px;
+  }
+  @media (min-width: 1100px) {
+    :global(html.present dialog.arch > .card) { zoom: 1.12; }
+  }
+  :global(.present-bar) {
+    position: fixed; right: 20px; bottom: 16px; font-family: var(--font-mono); font-size: 11px; color: var(--color-faint);
+  }
+</style>
+
+<script>
+  const deck = document.getElementById('deck') as HTMLDialogElement;
+  const cases = [...document.querySelectorAll<HTMLButtonElement>('[data-open]')].map((b) => b.dataset.open!);
+  const total = cases.length + 2; // intro + cases + outro
+  let at = -1;
+
+  // close events fire asynchronously, so mark dialogs we close on purpose
+  const closeAll = () =>
+    document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => {
+      d.dataset.switching = '1';
+      d.close();
+    });
+  const bar = (host: HTMLElement) => {
+    host.querySelector('.present-bar')?.remove();
+    const b = document.createElement('p');
+    b.className = 'present-bar';
+    b.textContent = `${at + 1} / ${total} · → next · ← back · esc exit`;
+    host.appendChild(b);
+  };
+
+  const show = (n: number) => {
+    at = Math.max(0, Math.min(n, total - 1));
+    closeAll();
+    if (at === 0 || at === total - 1) {
+      deck.querySelector('.deck-intro')!.classList.toggle('hidden', at !== 0);
+      deck.querySelector('.deck-outro')!.classList.toggle('hidden', at === 0);
+      deck.showModal();
+      bar(deck);
+      return;
+    }
+    const dlg = document.getElementById(`dlg-${cases[at - 1]}`) as HTMLDialogElement;
+    dlg.showModal();
+    dlg.querySelector('.card')!.scrollTop = 0;
+    bar(dlg);
+    setTimeout(() => dlg.open && at > 0 && dlg.querySelector<HTMLButtonElement>('.play')!.textContent!.startsWith('▶') && dlg.querySelector<HTMLButtonElement>('.play')!.click(), 700);
+  };
+
+  const start = () => {
+    document.documentElement.classList.add('present');
+    document.documentElement.requestFullscreen?.().catch(() => {});
+    (window as any).track?.('present', 'Presentation mode');
+    (window as any).badge?.('present');
+    show(0);
+  };
+  const stop = () => {
+    document.documentElement.classList.remove('present');
+    at = -1;
+    closeAll();
+    document.querySelectorAll('.present-bar').forEach((b) => b.remove());
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  };
+
+  // leaving any slide by Esc (native dialog close) ends the presentation
+  [deck, ...document.querySelectorAll<HTMLDialogElement>('dialog.arch')].forEach((d) =>
+    d.addEventListener('close', () => {
+      if (d.dataset.switching) { delete d.dataset.switching; return; }
+      if (at >= 0) stop();
+    }),
+  );
+  document.addEventListener('keydown', (e) => {
+    const typing = (e.target as HTMLElement)?.closest?.('input, textarea, select, [contenteditable]');
+    if (at < 0) {
+      if (!typing && !e.metaKey && !e.ctrlKey && e.key.toLowerCase() === 'p' && !document.querySelector('dialog[open]')) start();
+      return;
+    }
+    if (['ArrowRight', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); show(at + 1); }
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(at - 1); }
+  });
+  document.querySelectorAll('.present-start').forEach((b) => b.addEventListener('click', start));
+  (window as any).startPresent = start;
+</script>

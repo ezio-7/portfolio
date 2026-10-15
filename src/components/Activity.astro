@@ -70,8 +70,8 @@ const cell = 9, gap = 3, W = 22 + weeks * (cell + gap), H = 5 * (cell + gap) + 1
 <style>
   .hm-wrap { scrollbar-width: thin; scrollbar-color: var(--color-line-2) transparent; }
   .hm { fill: var(--color-surface-2); stroke: var(--color-line); stroke-width: 0.5; }
-  .hm.l1 { fill: rgb(196 240 77 / 0.22); stroke: none; }
-  .hm.l2 { fill: rgb(196 240 77 / 0.42); stroke: none; }
-  .hm.l3 { fill: rgb(196 240 77 / 0.68); stroke: none; }
+  .hm.l1 { fill: color-mix(in srgb, var(--color-accent) 22%, transparent); stroke: none; }
+  .hm.l2 { fill: color-mix(in srgb, var(--color-accent) 42%, transparent); stroke: none; }
+  .hm.l3 { fill: color-mix(in srgb, var(--color-accent) 68%, transparent); stroke: none; }
   .hm.l4 { fill: var(--color-accent); stroke: none; }
 </style>

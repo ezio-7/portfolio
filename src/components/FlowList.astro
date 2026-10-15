@@ -1,0 +1,62 @@
+---
+// Phone version of an architecture diagram: the same nodes as a vertical flow, in walk-through order
+import type { Diagram, PlayStep } from '../data/caseStudies';
+
+interface Props {
+  diagram: Diagram;
+  steps: PlayStep[];
+}
+const { diagram, steps } = Astro.props;
+const byId = Object.fromEntries(diagram.nodes.map((n) => [n.id, n]));
+const order = [...new Set([...steps.map((s) => s.node), ...diagram.nodes.map((n) => n.id)])].filter((id) => byId[id]);
+const link = (a: string, b: string) =>
+  diagram.edges.find((e) => (e.from === a && e.to === b) || (e.from === b && e.to === a));
+---
+
+<ol class="flow-list">
+  {
+    order.map((id, i) => {
+      const n = byId[id];
+      const e = i > 0 ? link(order[i - 1], id) : undefined;
+      return (
+        <li>
+          {i > 0 && (
+            <div class="flow-join" aria-hidden="true">
+              <span class="flow-line" />
+              {e?.label && <span class="flow-label">{e.label}</span>}
+            </div>
+          )}
+          <div class={`flow-card k-${n.kind ?? 'process'}`} data-id={id}>
+            <div class="flex items-baseline justify-between gap-2">
+              <p class="text-[13px] font-medium text-ink">{n.label}</p>
+              {n.sub && <p class="font-mono text-[9.5px] text-faint">{n.sub}</p>}
+            </div>
+            <p class="mt-1 text-[12px] leading-snug text-muted">{n.tip}</p>
+          </div>
+        </li>
+      );
+    })
+  }
+</ol>
+
+<style>
+  .flow-card {
+    border: 1px solid var(--color-line-2);
+    background: var(--color-surface-2);
+    border-radius: 10px;
+    padding: 10px 12px;
+    transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+  }
+  .flow-card.k-accent { border-color: var(--color-accent); }
+  .flow-card.k-muted { opacity: 0.55; border-style: dashed; }
+  .flow-join { position: relative; height: 26px; display: flex; align-items: center; padding-left: 22px; }
+  .flow-line { position: absolute; left: 14px; top: 0; bottom: 0; width: 1px; background: var(--color-accent); opacity: 0.5; }
+  .flow-line::after {
+    content: ''; position: absolute; left: -3px; bottom: 0;
+    border-left: 3.5px solid transparent; border-right: 3.5px solid transparent; border-top: 5px solid var(--color-accent);
+  }
+  .flow-label { font-family: var(--font-mono); font-size: 9.5px; color: var(--color-faint); }
+  :global(.flow-list.playing) .flow-card:not(.lit):not(.seen) { opacity: 0.3; }
+  :global(.flow-list.playing) .flow-card.seen:not(.lit) { opacity: 0.6; }
+  .flow-card:global(.lit) { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent), 0 0 16px rgb(196 240 77 / 0.2); }
+</style>

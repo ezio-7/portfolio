@@ -41,6 +41,8 @@ export type CaseStudy = {
   stack: string[];
   diagram: Diagram;
   steps: PlayStep[]; // ▶ walk-through, in order
+  // Recruiter view: the same story in plain English
+  plain: { tagline: string; problem: string; approach: string[] };
 };
 
 export const caseStudies: CaseStudy[] = [
@@ -62,6 +64,16 @@ export const caseStudies: CaseStudy[] = [
       { value: 'Idempotent', label: 'crash-resumable runs' },
     ],
     stack: ['Python', 'MySQL', 'SQLAlchemy', 'Azure Blob'],
+    plain: {
+      tagline: "Showing whether providers fixed their data, automatically",
+      problem: "When a provider sends bad data, it is flagged and sent back. Nobody could tell whether the provider actually fixed it in a later file, so the bad-data count only ever went up.",
+      approach: [
+        "Built a system that remembers every flagged record and checks each new file for the fix",
+        "It updates the status automatically and feeds a report the business team uses",
+        "It is safe to re-run and picks up where it left off if anything crashes",
+        "Made the slowest step 220× faster: from 34 hours to 9 minutes",
+      ],
+    },
     steps: [
       { node: 'dq', text: "A record fails a critical rule: its lab code is missing." },
       { node: 'indexer', text: "The failure is indexed with member, source, state and date of service." },
@@ -128,6 +140,16 @@ export const caseStudies: CaseStudy[] = [
       { value: '43M+', label: 'records indexed' },
     ],
     stack: ['Python', 'Java', 'MySQL', 'PostgreSQL', 'Azure AI Search'],
+    plain: {
+      tagline: "Making sure every record belongs to the right person",
+      problem: "Every medical record has to be linked to the right health-plan member. The old setup ran on the most expensive service in the platform, and each health plan identifies its members differently.",
+      approach: [
+        "Built matching rules tailored to each health plan",
+        "Moved matching to cheaper, faster databases, saving about $94K a year",
+        "Made member lists load automatically: 43M+ records",
+        "Ran the old and new systems side by side to prove the results matched before switching",
+      ],
+    },
     steps: [
       { node: 'extract', text: "A health plan sends its member extract." },
       { node: 'indexjob', text: "Indexing picks it up automatically and loads it state by state, in parallel." },
@@ -193,6 +215,16 @@ export const caseStudies: CaseStudy[] = [
       { value: '20+', label: 'large files in parallel' },
     ],
     stack: ['Java', 'Spring Boot', 'ShedLock', 'MySQL', 'Kubernetes'],
+    plain: {
+      tagline: "Keeping 1,000+ files a day moving without babysitting",
+      problem: "Each file goes through about 17 processing steps. When a step got stuck it could sit for up to 3 days before timing out, and very large files slowed everything else down.",
+      approach: [
+        "Built the services that move each file from step to step and track its progress",
+        "Stuck work is now detected and restarted automatically, with no 3-day wait",
+        "Very large files (up to 100 GB) are split into pieces and processed in parallel",
+        "Load-tested with 20+ large files at once",
+      ],
+    },
     steps: [
       { node: 'big', text: "A 60 GB HIE file arrives." },
       { node: 'split', text: "It is split into child chunk loads under one parent." },
@@ -256,6 +288,16 @@ export const caseStudies: CaseStudy[] = [
       { value: '1', label: 'codebase' },
     ],
     stack: ['Python', 'Java', 'PostgreSQL', 'Liquibase', 'Azure', 'AWS'],
+    plain: {
+      tagline: "The same product, on any cloud",
+      problem: "The product only ran on one cloud provider and one database, so setting it up for a new client was slow and risky.",
+      approach: [
+        "Built one shared way for all the code to talk to databases and file storage",
+        "Secure logins work on both Azure and AWS without code changes",
+        "Moved the database to PostgreSQL on AWS and verified nothing changed",
+        "Developers can run the whole system on a laptop",
+      ],
+    },
     steps: [
       { node: 'py', text: "Python code asks for a connection. It never touches a driver or cloud SDK directly." },
       { node: 'db', text: "The DB handler hands out a pooled, thread-safe connection with retries." },

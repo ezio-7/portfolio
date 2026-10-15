@@ -1,0 +1,83 @@
+---
+// Explorer badges: small achievements for finding the interactive bits
+const badges = [
+  { id: 'demo', label: 'Ran the pipeline demo', hint: 'HiLabs → platform pipeline' },
+  { id: 'broken', label: 'Broke a record on purpose', hint: 'try a broken one' },
+  { id: 'race', label: 'Watched the 220× race', hint: 'inside Fallout Remediation' },
+  { id: 'cliff', label: 'Pushed MySQL off the cliff', hint: 'Playground → IN-list batch size' },
+  { id: 'match', label: 'Matched a member', hint: 'Playground → member matching' },
+  { id: 'healing', label: 'Killed a job (it came back)', hint: 'Playground → self-healing' },
+  { id: 'filter', label: 'Traced a skill', hint: 'click a skill in the toolkit' },
+  { id: 'fit', label: 'Ran a fit check', hint: 'hero → fit check' },
+  { id: 'present', label: 'Opened presentation mode', hint: 'press P' },
+  { id: 'secret', label: 'Found the hidden word', hint: 'what should the diagrams do?' },
+];
+---
+
+<dialog id="badges" aria-labelledby="badges-title">
+  <div class="card p-5" style="background: var(--color-pop)">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <p class="stage-label"><b>explorer</b> / badges</p>
+        <h3 id="badges-title" class="mt-1 text-[15px] font-medium"><span class="bd-count">0</span> of {badges.length} found</h3>
+      </div>
+      <button type="button" class="btn px-2.5 bd-close" aria-label="Close">esc ✕</button>
+    </div>
+    <ul class="mt-4 space-y-2">
+      {
+        badges.map((b) => (
+          <li class="bd-item flex items-center gap-3 text-[12.5px]" data-id={b.id}>
+            <span class="bd-icon flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line-2 font-mono text-[10px] text-faint">?</span>
+            <span>
+              <span class="bd-label text-ink">{b.label}</span>
+              <span class="block font-mono text-[10px] text-faint">{b.hint}</span>
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</dialog>
+
+<script type="application/json" id="badge-data" set:html={JSON.stringify(badges)} />
+
+<style>
+  dialog#badges {
+    width: min(420px, 100vw - 24px); margin: 12vh auto auto; padding: 0; border: 0; background: transparent; color: inherit;
+  }
+  dialog#badges::backdrop { background: rgb(4 5 6 / 0.6); backdrop-filter: blur(3px); }
+  .bd-item:not(.got) .bd-label { color: var(--color-muted); }
+  .bd-item.got .bd-icon { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); }
+</style>
+
+<script>
+  const list: { id: string; label: string }[] = JSON.parse(document.getElementById('badge-data')!.textContent!);
+  const dlg = document.getElementById('badges') as HTMLDialogElement;
+  const load = (): string[] => { try { return JSON.parse(localStorage.getItem('badges') || '[]'); } catch { return []; } };
+  let got = new Set(load());
+
+  const render = () => {
+    document.querySelectorAll('.bd-count').forEach((el) => (el.textContent = String(got.size)));
+    document.querySelectorAll('.bd-total').forEach((el) => (el.textContent = String(list.length)));
+    dlg.querySelectorAll<HTMLElement>('.bd-item').forEach((li) => {
+      const has = got.has(li.dataset.id!);
+      li.classList.toggle('got', has);
+      li.querySelector('.bd-icon')!.textContent = has ? '✓' : '?';
+    });
+  };
+
+  (window as any).badge = (id: string) => {
+    if (got.has(id) || !list.some((b) => b.id === id)) return;
+    got.add(id);
+    try { localStorage.setItem('badges', JSON.stringify([...got])); } catch {}
+    render();
+    const b = list.find((x) => x.id === id)!;
+    (window as any).toast?.(`badge ${got.size}/${list.length} · ${b.label}`);
+    (window as any).track?.(`badge-${id}`, `Badge: ${b.label}`);
+  };
+
+  document.querySelectorAll('.badges-open').forEach((b) => b.addEventListener('click', () => { render(); dlg.showModal(); }));
+  dlg.querySelector('.bd-close')!.addEventListener('click', () => dlg.close());
+  dlg.addEventListener('click', (e) => e.target === dlg && dlg.close());
+  render();
+</script>

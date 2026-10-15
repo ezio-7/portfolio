@@ -18,6 +18,9 @@
   --color-accent: #c4f04d;
   --color-accent-dim: rgb(196 240 77 / 0.12);
   --color-warn: #ff8a5c;
+  --color-pop: #121418; /* floating panels: tooltips, palette, tour */
+  --color-on-accent: #0b0c0e;
+  --color-hover: #141a0d;
 }
 
 html {
@@ -40,8 +43,31 @@ body {
 
 ::selection {
   background: var(--color-accent);
-  color: #0b0c0e;
+  color: var(--color-on-accent);
 }
+
+/* Light theme: same tokens, re-pointed */
+html[data-theme='light'] {
+  --color-bg: #f6f6f3;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0f1ec;
+  --color-line: #e2e4de;
+  --color-line-2: #cfd3cb;
+  --color-ink: #16181b;
+  --color-muted: #4b5159;
+  --color-faint: #646a72;
+  --color-accent: #4d7c0f;
+  --color-accent-dim: rgb(77 124 15 / 0.12);
+  --color-warn: #c2410c;
+  --color-pop: #ffffff;
+  --color-on-accent: #ffffff;
+  --color-hover: #eef5e2;
+  color-scheme: light;
+}
+html[data-theme='light'] body {
+  background: radial-gradient(1200px 600px at 85% -10%, rgb(77 124 15 / 0.06), transparent 60%), var(--color-bg);
+}
+html { transition: background-color 0.25s; }
 
 @layer base {
   a {
@@ -109,7 +135,7 @@ body {
   .btn-primary {
     background: var(--color-accent);
     border-color: var(--color-accent);
-    color: #0b0c0e;
+    color: var(--color-on-accent);
     font-weight: 500;
   }
   .btn-primary:hover {
@@ -152,7 +178,7 @@ body {
   z-index: 100;
   max-width: 260px;
   pointer-events: none;
-  background: #15181c;
+  background: var(--color-pop);
   border: 1px solid var(--color-line-2);
   border-radius: 8px;
   padding: 8px 10px;

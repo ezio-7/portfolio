@@ -34,7 +34,7 @@ import { skills, education, achievements } from '../data/profile';
       <ul class="space-y-1.5">
         {
           achievements.map((a) => (
-            <li class="relative pl-4 text-[12.5px] text-ink/85">
+            <li class="pt relative pl-4 text-[12.5px] text-ink/85">
               <span class="absolute top-[9px] left-0 h-1 w-1 rounded-full bg-accent" />
               {a}
             </li>
@@ -54,7 +54,7 @@ import { skills, education, achievements } from '../data/profile';
 <style>
   .skill-btn { cursor: pointer; transition: all 0.15s; }
   .skill-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  .skill-btn[aria-pressed='true'] { background: var(--color-accent); border-color: var(--color-accent); color: #0b0c0e; }
+  .skill-btn[aria-pressed='true'] { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); }
   /* filter mode: dim everything that isn't a hit */
   :global(html.sk-on [data-skills]:not(.sk-hit)),
   :global(html.sk-on .pt:not(.sk-hit)) { opacity: 0.22; transition: opacity 0.25s; }
@@ -65,7 +65,7 @@ import { skills, education, achievements } from '../data/profile';
     position: fixed; left: 50%; bottom: 20px; z-index: 80;
     display: flex; align-items: center; gap: 10px;
     transform: translate(-50%, 16px); opacity: 0;
-    background: #15181c; border: 1px solid var(--color-line-2); border-radius: 999px;
+    background: var(--color-pop); border: 1px solid var(--color-line-2); border-radius: 999px;
     padding: 6px 8px 6px 14px; font-family: var(--font-mono); font-size: 11px;
     transition: opacity 0.2s, transform 0.2s;
   }
@@ -106,10 +106,10 @@ import { skills, education, achievements } from '../data/profile';
     active = ''; hits = []; cursor = -1;
   };
 
-  const apply = (skill: string) => {
+  const apply = (skill: string, pattern?: string) => {
     clear();
     active = skill;
-    const r = rx(skill);
+    const r = pattern ? new RegExp(pattern, 'i') : rx(skill);
     const found: HTMLElement[] = [];
     document.querySelectorAll<HTMLElement>('[data-skills]').forEach((el) => {
       if (el.dataset.skills!.split('|').some((s) => r.test(s))) { el.classList.add('sk-hit'); found.push(el); }
@@ -131,6 +131,7 @@ import { skills, education, achievements } from '../data/profile';
     });
     buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.skill === skill)));
     document.documentElement.classList.add('sk-on');
+    (window as any).badge?.('filter');
     hits = found.filter((el) => !found.some((o) => o !== el && o.contains(el)) || el.matches('.pt'))
       .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
     const places = new Set(found.map((el) => el.closest('[data-skills]') ?? el)).size;

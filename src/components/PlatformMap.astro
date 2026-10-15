@@ -1,0 +1,223 @@
+---
+// Zoomable map of the whole HiLabs platform. Generic: no client names or internal details.
+import { platformStages } from '../data/experience';
+
+type N = { id: string; x: number; y: number; w?: number; label: string; sub?: string; tip: string; go?: string; kind?: string };
+const W = 150, H = 50;
+
+const spineY = 470;
+const spine: N[] = platformStages.map((s, i) => ({
+  id: `s${i}`,
+  x: 260 + i * 132,
+  y: spineY,
+  w: 120,
+  label: s.name,
+  tip: s.tip,
+  go: s.name === 'Member Matching' ? 'case:member-matching' : s.name === 'DQ' ? 'play:dq' : undefined,
+  kind: 'stage',
+}));
+
+const nodes: N[] = [
+  // sources
+  { id: 'src1', x: 30, y: 380, label: 'Providers & labs', sub: 'CSV · Excel · fixed-width', tip: 'Clinical files from providers and labs, in many non-standard layouts.' },
+  { id: 'src2', x: 30, y: 470, label: 'HIEs & registries', sub: 'files up to 100 GB', tip: 'Health information exchanges and state registries; some files are huge Parquet drops.' },
+  { id: 'src3', x: 30, y: 560, label: 'Health plans', sub: 'member extracts', tip: 'Member eligibility extracts used for matching.' },
+  ...spine,
+  // orchestration (Java)
+  { id: 'fetch', x: 300, y: 170, label: 'Fetchers', sub: 'Spring Boot · ShedLock', tip: 'Schedulers that poll for work and pick up each load stage.', go: 'case:orchestration' },
+  { id: 'exec', x: 500, y: 170, label: 'Executor', sub: 'record locking', tip: 'Locks a load and dispatches the stage job.', go: 'case:orchestration' },
+  { id: 'stage', x: 700, y: 170, label: 'Stage table', sub: 'status per load', tip: 'Single source of truth for where every load is.', go: 'case:orchestration', kind: 'store' },
+  { id: 'split', x: 900, y: 170, label: 'Large-file splitter', sub: 'parent / child loads', tip: 'Splits huge files into chunk loads processed in parallel.', go: 'case:orchestration' },
+  { id: 'heart', x: 1100, y: 170, label: 'Heartbeat monitor', sub: 'finds stuck loads', tip: 'Silence means stuck: replaced a fixed 72-hour timeout.', go: 'play:healing' },
+  { id: 'heal', x: 1300, y: 170, label: 'Self-healing', sub: 'retry · fail · release', tip: 'Recovers stuck loads automatically.', go: 'play:healing' },
+  // stores
+  { id: 'blob', x: 260, y: 760, label: 'Object storage', sub: 'Azure Blob · S3 · local', tip: 'Raw files and intermediate Parquet, behind one storage interface.', go: 'case:cloud-agnostic', kind: 'store' },
+  { id: 'db', x: 460, y: 760, label: 'MySQL · PostgreSQL', sub: 'pooled · IAM / AD auth', tip: 'Operational database, either engine, on Azure or AWS.', go: 'case:cloud-agnostic', kind: 'store' },
+  { id: 'cache', x: 660, y: 760, label: 'Mapping cache', sub: 'repeat layouts', tip: 'Reuses previous column mappings for files with a known layout.', kind: 'store' },
+  { id: 'midx', x: 860, y: 760, label: 'Member index', sub: '43M+ records · by state', tip: 'State-partitioned member tables that replaced Azure AI Search (~$94K/yr saved).', go: 'case:member-matching', kind: 'store' },
+  { id: 'codes', x: 1060, y: 760, label: 'Code library', sub: '1.9M clinical codes', tip: 'ICD, CPT, LOINC and SNOMED codes, refreshed from UMLS releases.', kind: 'store' },
+  { id: 'fidx', x: 1260, y: 760, label: 'Fallout index', sub: 'state-partitioned', tip: 'Every critical failure, tracked until a later file fixes it.', go: 'case:fallout-remediation', kind: 'store' },
+  // outputs
+  { id: 'out1', x: 1640, y: 330, label: 'DQ dashboard', sub: 'summary · usability %', tip: 'Business-facing view of data quality by state and source.' },
+  { id: 'out2', x: 1640, y: 420, label: 'Fallout reports', sub: 'per-cell highlights', tip: 'Excel reports of failing records, with the failing cells highlighted.' },
+  { id: 'out3', x: 1640, y: 510, label: 'Remediation report', sub: 'what got fixed', tip: 'Which failures providers fixed in later files.', go: 'case:fallout-remediation' },
+  { id: 'out4', x: 1640, y: 600, label: 'Member analytics', sub: 'net-new · penetration', tip: 'Daily and monthly rollups of members seen.' },
+];
+
+const byId = Object.fromEntries(nodes.map((n) => [n.id, { ...n, w: n.w ?? W }]));
+type E = { a: string; b: string; dashed?: boolean };
+const edges: E[] = [
+  { a: 'src1', b: 's0' }, { a: 'src2', b: 's0' }, { a: 'src3', b: 'midx', dashed: true },
+  ...spine.slice(1).map((s, i) => ({ a: spine[i].id, b: s.id })),
+  { a: 's9', b: 'out1' }, { a: 's9', b: 'out2' }, { a: 's9', b: 'out3' }, { a: 's9', b: 'out4' },
+  { a: 'fetch', b: 'exec' }, { a: 'exec', b: 'stage' }, { a: 'split', b: 'stage', dashed: true }, { a: 'heart', b: 'heal' }, { a: 'heal', b: 'stage', dashed: true },
+  { a: 'exec', b: 's3', dashed: true }, { a: 'exec', b: 's6', dashed: true },
+  { a: 's0', b: 'blob', dashed: true }, { a: 's3', b: 'cache', dashed: true }, { a: 's5', b: 'midx', dashed: true },
+  { a: 's6', b: 'codes', dashed: true }, { a: 's7', b: 'fidx', dashed: true }, { a: 's8', b: 'db', dashed: true },
+];
+const box = (id: string) => byId[id];
+const path = (e: E) => {
+  const A = box(e.a), B = box(e.b);
+  const ax = A.x + A.w! / 2, ay = A.y + H / 2, bx = B.x + B.w! / 2, by = B.y + H / 2;
+  if (Math.abs(by - ay) < 140 && Math.abs(bx - ax) > 0) {
+    const sx = bx > ax ? A.x + A.w! : A.x, ex = bx > ax ? B.x : B.x + B.w!;
+    const k = (ex - sx) / 2;
+    return `M${sx} ${ay} C${sx + k} ${ay}, ${ex - k} ${by}, ${ex} ${by}`;
+  }
+  const sy = by > ay ? A.y + H : A.y, ey = by > ay ? B.y : B.y + H, k = (ey - sy) / 2;
+  return `M${ax} ${sy} C${ax} ${sy + k}, ${bx} ${ey - k}, ${bx} ${ey}`;
+};
+const groups = [
+  { x: 270, y: 120, w: 1220, h: 140, label: 'orchestration · Java / Spring Boot' },
+  { x: 240, y: 410, w: 1340, h: 120, label: 'processing pipeline · Python' },
+  { x: 240, y: 710, w: 1210, h: 140, label: 'data stores' },
+  { x: 14, y: 340, w: 196, h: 290, label: 'sources' },
+  { x: 1620, y: 290, w: 196, h: 380, label: 'outputs' },
+];
+---
+
+<dialog id="pmap" aria-label="Platform map">
+  <div class="relative h-full w-full">
+    <svg id="pmap-svg" viewBox="0 0 1830 900" class="h-full w-full touch-none select-none" role="img" aria-label="Map of the HiLabs platform">
+      <defs>
+        <marker id="pm-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L8 4 L0 8 z" fill="var(--color-accent)" />
+        </marker>
+      </defs>
+      {groups.map((g) => (
+        <g>
+          <rect x={g.x} y={g.y} width={g.w} height={g.h} rx="16" fill="none" stroke="var(--color-line)" stroke-dasharray="4 6" />
+          <text x={g.x + 16} y={g.y + 22} class="fill-faint font-mono" font-size="12" letter-spacing="0.08em">{g.label.toUpperCase()}</text>
+        </g>
+      ))}
+      {edges.map((e) => (
+        <path d={path(e)} fill="none" stroke={e.dashed ? 'var(--color-faint)' : 'var(--color-accent)'} stroke-width="1.5"
+          stroke-dasharray={e.dashed ? '4 5' : undefined} class={e.dashed ? '' : 'flow'} opacity={e.dashed ? 0.6 : 0.85} marker-end="url(#pm-arrow)" />
+      ))}
+      {Object.values(byId).map((n) => (
+        <g class={`pm-node ${n.go ? 'go' : ''} ${n.kind ?? ''}`} data-go={n.go} data-tip={n.tip + (n.go ? ' · click to open' : '')}>
+          <rect x={n.x} y={n.y} width={n.w} height={H} rx="10" />
+          <text x={n.x + 10} y={n.y + (n.sub ? 21 : 30)} class="lbl" font-size={n.kind === 'stage' ? 12.5 : 14}>{n.label}</text>
+          {n.sub && <text x={n.x + 12} y={n.y + 38} class="sub font-mono" font-size="10.5">{n.sub}</text>}
+          {n.go && <circle cx={n.x + n.w! - 10} cy={n.y + 10} r="3.5" fill="var(--color-accent)" />}
+        </g>
+      ))}
+    </svg>
+
+    <div class="absolute top-4 left-4 right-4 flex flex-wrap items-start justify-between gap-3 pointer-events-none">
+      <div class="pointer-events-auto rounded-xl border border-line-2 px-3 py-2" style="background: var(--color-pop)">
+        <p class="stage-label"><b>hilabs</b> / platform map</p>
+        <p class="mt-0.5 text-[11.5px] text-muted">Drag to pan · scroll or pinch to zoom · <span class="text-accent">●</span> boxes open a deep dive</p>
+      </div>
+      <div class="pointer-events-auto flex gap-1.5">
+        <button type="button" class="btn pm-zoom px-2.5" data-z="0.8" aria-label="Zoom in">+</button>
+        <button type="button" class="btn pm-zoom px-2.5" data-z="1.25" aria-label="Zoom out">−</button>
+        <button type="button" class="btn pm-fit px-2.5">fit</button>
+        <button type="button" class="btn pm-close px-2.5" aria-label="Close">esc ✕</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<style>
+  dialog#pmap {
+    width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh; margin: 0; padding: 0; border: 0;
+    background: var(--color-bg); color: var(--color-ink);
+  }
+  dialog#pmap::backdrop { background: var(--color-bg); }
+  #pmap-svg { cursor: grab; }
+  #pmap-svg.dragging { cursor: grabbing; }
+  .pm-node rect { fill: var(--color-surface-2); stroke: var(--color-line-2); transition: stroke 0.15s, fill 0.15s; }
+  .pm-node.stage rect { stroke: rgb(196 240 77 / 0.4); }
+  .pm-node.store rect { stroke-dasharray: 5 4; }
+  .pm-node .lbl { fill: var(--color-ink); font-weight: 500; }
+  .pm-node .sub { fill: var(--color-faint); transition: opacity 0.2s; }
+  .pm-node.go { cursor: pointer; }
+  .pm-node:hover rect { stroke: var(--color-accent); fill: var(--color-hover); }
+  /* semantic zoom: detail text only once you zoom in */
+  #pmap-svg:not(.near) .sub { opacity: 0; }
+</style>
+
+<script>
+  const dlg = document.getElementById('pmap') as HTMLDialogElement;
+  const svg = document.getElementById('pmap-svg') as unknown as SVGSVGElement;
+  const FULL = { x: 0, y: 80, w: 1830, h: 820 };
+  let vb = { ...FULL };
+  const apply = () => {
+    svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+    svg.classList.toggle('near', vb.w < FULL.w * 0.72);
+  };
+  const toSvg = (cx: number, cy: number) => {
+    const r = svg.getBoundingClientRect();
+    const s = Math.max(vb.w / r.width, vb.h / r.height); // preserveAspectRatio meet
+    const ox = (r.width - vb.w / s) / 2, oy = (r.height - vb.h / s) / 2;
+    return { x: vb.x + (cx - r.left - ox) * s, y: vb.y + (cy - r.top - oy) * s, s };
+  };
+  const zoomAt = (f: number, cx?: number, cy?: number) => {
+    const r = svg.getBoundingClientRect();
+    const p = toSvg(cx ?? r.left + r.width / 2, cy ?? r.top + r.height / 2);
+    const w = Math.min(Math.max(vb.w * f, 360), FULL.w * 1.4), k = w / vb.w;
+    vb = { x: p.x - (p.x - vb.x) * k, y: p.y - (p.y - vb.y) * k, w, h: vb.h * k };
+    apply();
+  };
+
+  svg.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(e.deltaY > 0 ? 1.12 : 0.89, e.clientX, e.clientY); }, { passive: false });
+
+  // drag to pan, pinch to zoom; a tap without movement counts as a click
+  const pts = new Map<number, { x: number; y: number }>();
+  let moved = 0, pinch = 0;
+  svg.addEventListener('pointerdown', (e) => {
+    svg.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    moved = 0;
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); }
+    svg.classList.add('dragging');
+  });
+  svg.addEventListener('pointermove', (e) => {
+    const prev = pts.get(e.pointerId);
+    if (!prev) return;
+    const cur = { x: e.clientX, y: e.clientY };
+    pts.set(e.pointerId, cur);
+    if (pts.size === 2) {
+      const [a, b] = [...pts.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch) zoomAt(pinch / d, (a.x + b.x) / 2, (a.y + b.y) / 2);
+      pinch = d; moved += 10;
+      return;
+    }
+    const { s } = toSvg(cur.x, cur.y);
+    vb.x -= (cur.x - prev.x) * s; vb.y -= (cur.y - prev.y) * s;
+    moved += Math.abs(cur.x - prev.x) + Math.abs(cur.y - prev.y);
+    apply();
+  });
+  const up = (e: PointerEvent) => {
+    pts.delete(e.pointerId);
+    if (pts.size < 2) pinch = 0;
+    if (!pts.size) svg.classList.remove('dragging');
+  };
+  svg.addEventListener('pointerup', (e) => {
+    const target = (e.target as Element).closest<SVGGElement>('.pm-node.go');
+    up(e);
+    if (moved < 6 && target) go(target.dataset.go!);
+  });
+  svg.addEventListener('pointercancel', up);
+
+  const go = (dest: string) => {
+    const [kind, id] = dest.split(':');
+    dlg.close();
+    if (kind === 'case') document.querySelector<HTMLButtonElement>(`[data-open="${id}"]`)?.click();
+    if (kind === 'play') (window as any).openPlayground?.(id);
+  };
+
+  dlg.querySelectorAll<HTMLButtonElement>('.pm-zoom').forEach((b) => b.addEventListener('click', () => zoomAt(+b.dataset.z!)));
+  dlg.querySelector('.pm-fit')!.addEventListener('click', () => { vb = { ...FULL }; apply(); });
+  dlg.querySelector('.pm-close')!.addEventListener('click', () => dlg.close());
+  const open = () => {
+    document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => d.close());
+    vb = { ...FULL }; apply();
+    dlg.showModal();
+    (window as any).track?.('platform-map', 'Platform map opened');
+  };
+  document.querySelectorAll('.pmap-open').forEach((b) => b.addEventListener('click', open));
+  (window as any).openMap = open;
+  apply();
+</script>

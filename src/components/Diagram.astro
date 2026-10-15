@@ -173,7 +173,7 @@ const mk = `arrow-${id}`, mkMuted = `arrow-m-${id}`;
   .dnode:hover rect,
   .dnode:focus rect {
     stroke: var(--color-accent);
-    fill: #141a0d;
+    fill: var(--color-hover);
   }
   .dnode,
   .dedge {
@@ -193,7 +193,7 @@ const mk = `arrow-${id}`, mkMuted = `arrow-m-${id}`;
     stroke: var(--color-accent);
   }
   .diagram.playing .dnode.lit rect {
-    fill: #18200c;
+    fill: var(--color-hover);
     filter: drop-shadow(0 0 14px rgb(196 240 77 / 0.35));
   }
   .pulse {

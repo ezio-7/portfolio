@@ -118,6 +118,7 @@ const hitRows = [3, 4, 5, 9];
       cancelAnimationFrame(raf);
       race.querySelectorAll('.cell').forEach((c) => c.classList.remove('on-old', 'on-new'));
       btn.textContent = '↺ race again';
+      (window as any).badge?.('race');
       const t0 = performance.now();
       const frame = (t: number) => {
         const minutes = ((t - t0) / DUR) * OLD; // simulated wall-clock

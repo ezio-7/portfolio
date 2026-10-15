@@ -33,7 +33,10 @@ import { simulator } from '../data/simulator';
       <ol id="sim-log" class="space-y-1 font-mono text-[10.5px] leading-snug text-muted"></ol>
     </div>
   </div>
-  <p class="mt-2 font-mono text-[9.5px] text-faint">synthetic sample data · no real formats or records</p>
+  <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
+    <p class="font-mono text-[9.5px] text-faint">synthetic sample data · no real formats or records</p>
+    <button type="button" class="pmap-open font-mono text-[10.5px] text-accent hover:underline">⤢ explore the full platform map</button>
+  </div>
   </div>
 </div>
 
@@ -52,13 +55,13 @@ import { simulator } from '../data/simulator';
   .sim-stage:hover { border-color: var(--color-line-2); color: var(--color-muted); }
   .sim-stage.done { color: var(--color-muted); border-color: rgb(196 240 77 / 0.35); }
   .sim-stage.active {
-    color: #0b0c0e;
+    color: var(--color-on-accent);
     background: var(--color-accent);
     border-color: var(--color-accent);
     box-shadow: 0 0 12px rgb(196 240 77 / 0.35);
   }
   .sim-stage.fail { color: var(--color-warn); border-color: var(--color-warn); }
-  .sim-stage.fail.active { background: var(--color-warn); color: #0b0c0e; box-shadow: 0 0 12px rgb(255 138 92 / 0.35); }
+  .sim-stage.fail.active { background: var(--color-warn); color: var(--color-on-accent); box-shadow: 0 0 12px rgb(255 138 92 / 0.35); }
   .sim-stage.skip { opacity: 0.4; text-decoration: line-through; }
   :global(#sim-record .k) { color: var(--color-faint); }
   :global(#sim-record .v) { color: var(--color-ink); }
@@ -91,6 +94,7 @@ import { simulator } from '../data/simulator';
       .join('\n');
 
   async function run(kind: 'good' | 'bad') {
+    (window as any).badge?.(kind === 'good' ? 'demo' : 'broken');
     const id = ++runId;
     const steps = data[kind];
     // Same pacing for everyone (reduced motion only drops animations); a bit slower on phones,

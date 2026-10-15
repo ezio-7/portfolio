@@ -1,0 +1,73 @@
+---
+// Deep links (#case/<id>, #play/<tab>), the ?ref= greeting, and GoatCounter event tracking
+---
+
+<script>
+  // ---------- tracking ----------
+  const queue: [string, string][] = [];
+  const flush = () => {
+    const gc = (window as any).goatcounter;
+    if (!gc?.count) return false;
+    while (queue.length) {
+      const [path, title] = queue.shift()!;
+      gc.count({ path, title, event: true });
+    }
+    return true;
+  };
+  const track = (path: string, title = path) => {
+    queue.push([path, title]);
+    if (!flush()) setTimeout(flush, 1500);
+  };
+  (window as any).track = track;
+
+  document.addEventListener('click', (e) => {
+    const el = (e.target as HTMLElement)?.closest?.('a, button') as HTMLElement | null;
+    if (!el) return;
+    if (el.matches('a[download], a[href$=".pdf"]')) track('resume-download', 'Résumé downloaded');
+    else if (el.dataset.open) track(`case-${el.dataset.open}`, `Case study opened: ${el.dataset.open}`);
+    else if (el.matches('.pg-tab')) track(`play-${el.dataset.tab}`, `Playground tab: ${el.dataset.tab}`);
+    else if (el.matches('.tour-start')) track('tour-start', 'Tour started');
+    else if (el.matches('.sim-run')) track(`demo-${el.dataset.kind}`, 'Pipeline demo run');
+  });
+
+  // ---------- deep links ----------
+  const clearHash = () => history.replaceState(null, '', location.pathname + location.search);
+  const route = () => {
+    const [kind, id] = location.hash.replace(/^#/, '').split('/');
+    if (kind === 'case' && id) {
+      document.querySelector<HTMLButtonElement>(`[data-open="${CSS.escape(id)}"]`)?.click();
+    } else if (kind === 'play' && id) {
+      (window as any).openPlayground?.(id);
+    }
+  };
+  document.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((b) =>
+    b.addEventListener('click', () => history.replaceState(null, '', `#case/${b.dataset.open}`)),
+  );
+  document.querySelectorAll<HTMLDialogElement>('dialog.arch').forEach((d) =>
+    d.addEventListener('close', () => location.hash.startsWith('#case/') && clearHash()),
+  );
+  document.querySelectorAll<HTMLButtonElement>('.pg-tab').forEach((t) =>
+    t.addEventListener('click', () => history.replaceState(null, '', `#play/${t.dataset.tab}`)),
+  );
+  document.querySelectorAll<HTMLButtonElement>('.copy-link').forEach((b) =>
+    b.addEventListener('click', () => {
+      const url = `${location.origin}${location.pathname}#${b.dataset.hash}`;
+      navigator.clipboard?.writeText(url).then(() => (window as any).toast?.('link copied ✓'));
+      track('link-copied', `Link copied: ${b.dataset.hash}`);
+    }),
+  );
+  addEventListener('hashchange', route);
+  // wait a beat so other components have wired their handlers
+  addEventListener('load', () => setTimeout(route, 150));
+
+  // ---------- ?ref= greeting ----------
+  const generic = ['linkedin', 'github', 'resume', 'google', 'twitter', 'x', 'email', 'portfolio'];
+  const ref = new URLSearchParams(location.search).get('ref')?.trim() ?? '';
+  const greet = document.getElementById('ref-greeting');
+  if (greet && /^[a-z0-9][a-z0-9-]{1,30}$/i.test(ref) && !generic.includes(ref.toLowerCase())) {
+    const name = ref.split('-').map((w) => (w.length <= 3 ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1))).join(' ');
+    greet.querySelector('.ref-name')!.textContent = name;
+    greet.hidden = false;
+    greet.querySelector('button')!.addEventListener('click', () => (greet.hidden = true));
+  }
+</script>

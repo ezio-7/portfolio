@@ -262,6 +262,7 @@ const data = { inList, members, dqRules, dqBatch, garbageCodes, today };
     $('#inl-total').textContent = dur(batchSec * batches);
     $('#inl-total').className = `mt-1 font-mono text-[13px] ${full ? 'text-warn' : 'text-ink'}`;
     $('#inl-batches').textContent = `${fmt(batches)} batches`;
+    if (full) (window as any).badge?.('cliff');
   };
   range.addEventListener('input', updateInList);
   updateInList();
@@ -276,6 +277,7 @@ const data = { inList, members, dqRules, dqBatch, garbageCodes, today };
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
   const match = (q: { memberId: string; name: string; dob: string; state: string }) => {
+    (window as any).badge?.('match');
     const steps: [string, 'ok' | 'no' | 'skip', string][] = [];
     const pool = members.filter((m) => m.state === q.state);
     steps.push([`state scope · ${q.state}`, 'ok', `${pool.length} candidate members`]);
@@ -393,6 +395,7 @@ const data = { inList, members, dqRules, dqBatch, garbageCodes, today };
     busy = true; silent = 0; dead = 1;
     (e.currentTarget as HTMLButtonElement).disabled = true;
     say('✕ job 2 (DQ · load 1202) killed: heartbeat stopped', 'w');
+    (window as any).badge?.('healing');
     setState(dead, 'silent…', 'dead');
   });
 </script>

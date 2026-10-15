@@ -12,24 +12,34 @@ const commands: Cmd[] = [
   ...sections.map(([id, label]) => ({ label, group: 'go to', action: 'goto', arg: id })),
   ...caseStudies.map((c) => ({ label: `${c.title} architecture`, group: 'case study', action: 'case', arg: c.id })),
   { label: 'Take the 30-second tour', group: 'demo', action: 'tour' },
+  { label: 'Platform map (zoomable)', group: 'demo', action: 'map' },
+  { label: 'Fit check: paste a job description', group: 'recruiters', action: 'fit' },
+  { label: 'Plain-English case studies', group: 'recruiters', action: 'view', arg: 'rec' },
+  { label: 'Technical case studies', group: 'engineers', action: 'view', arg: 'eng' },
+  { label: 'Presentation mode', group: 'interview', hint: 'P', action: 'present' },
   { label: 'Process a record', group: 'demo', action: 'sim', arg: 'good' },
   { label: 'Try a broken record', group: 'demo', action: 'sim', arg: 'bad' },
   { label: 'Copy email', group: 'contact', hint: profile.email, action: 'copy', arg: profile.email },
   { label: 'Download resume', group: 'contact', hint: 'PDF', action: 'url', arg: `${base}${profile.resume}` },
   { label: 'GitHub', group: 'contact', hint: '↗', action: 'url', arg: profile.links.github },
   { label: 'LinkedIn', group: 'contact', hint: '↗', action: 'url', arg: profile.links.linkedin },
+  { label: 'Toggle light / dark theme', group: 'view', action: 'theme' },
+  { label: 'Explorer badges', group: 'view', action: 'badges' },
   { label: 'Keyboard shortcuts', group: 'help', hint: '?', action: 'help' },
 ];
 const shortcuts: [string, string][] = [
   ['⌘ K  /  Ctrl K  /  /', 'command palette'],
   ['?', 'this list'],
+  ['P', 'presentation mode (case studies as slides)'],
+  ['j / k', 'next / previous section'],
+  ['0 – 7', 'jump to a section'],
   ['Esc', 'close any panel'],
   ['▶ in a diagram', 'walk a record through it'],
 ];
 ---
 
 <dialog id="palette" class="cmdk" aria-label="Command palette">
-  <div class="card overflow-hidden border-line-2 bg-[#0c0e11] shadow-2xl">
+  <div class="card overflow-hidden border-line-2 bg-[var(--color-pop)] shadow-2xl">
     <div class="flex items-center gap-2 border-b border-line px-3.5">
       <span class="font-mono text-[12px] text-accent">›</span>
       <input
@@ -67,7 +77,7 @@ const shortcuts: [string, string][] = [
 </dialog>
 
 <dialog id="shortcuts" class="cmdk" aria-label="Keyboard shortcuts">
-  <div class="card border-line-2 bg-[#0c0e11] p-4">
+  <div class="card border-line-2 bg-[var(--color-pop)] p-4">
     <p class="stage-label mb-3"><b>keys</b> / shortcuts</p>
     <dl class="space-y-2">
       {
@@ -107,7 +117,7 @@ const shortcuts: [string, string][] = [
     transform: translate(-50%, 12px);
     opacity: 0;
     pointer-events: none;
-    background: #15181c;
+    background: var(--color-pop);
     border: 1px solid var(--color-line-2);
     border-radius: 999px;
     padding: 6px 14px;
@@ -172,7 +182,13 @@ const shortcuts: [string, string][] = [
     if (action === 'copy') navigator.clipboard?.writeText(arg!).then(() => toast('email copied ✓'));
     if (action === 'url') window.open(arg, '_blank', 'noopener');
     if (action === 'help') help.showModal();
+    if (action === 'theme') (window as any).toggleTheme?.();
+    if (action === 'map') setTimeout(() => (window as any).openMap?.(), 50);
+    if (action === 'badges') document.querySelector<HTMLButtonElement>('.badges-open')?.click();
     if (action === 'tour') (window as any).startTour?.();
+    if (action === 'fit') (window as any).openFit?.();
+    if (action === 'view') { (window as any).setView?.(arg); document.getElementById('work')?.scrollIntoView({ behavior: 'smooth' }); }
+    if (action === 'present') setTimeout(() => (window as any).startPresent?.(), 50);
   };
 
   input.addEventListener('input', filter);
@@ -197,6 +213,16 @@ const shortcuts: [string, string][] = [
     if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === '/') { e.preventDefault(); openPalette(); return; }
     if (e.key === '?') { e.preventDefault(); help.open ? help.close() : help.showModal(); return; }
+    if (!document.querySelector('dialog[open]')) {
+      const ids = ['top', 'about', 'experience', 'work', 'playground', 'projects', 'toolkit', 'contact'];
+      const secs = ids.map((id) => document.getElementById(id)!).filter(Boolean);
+      if (e.key === 'j' || e.key === 'k') {
+        const cur = secs.reduce((acc, s, i) => (s.getBoundingClientRect().top <= innerHeight * 0.3 ? i : acc), 0);
+        const next = secs[Math.max(0, Math.min(secs.length - 1, cur + (e.key === 'j' ? 1 : -1)))];
+        next.scrollIntoView({ behavior: 'smooth' });
+      }
+      if (/^[0-7]$/.test(e.key)) secs[+e.key]?.scrollIntoView({ behavior: 'smooth' });
+    }
     if (e.key.length === 1) {
       buffer = (buffer + e.key.toLowerCase()).slice(-secret.length);
       if (buffer === secret) {
@@ -205,6 +231,7 @@ const shortcuts: [string, string][] = [
         (window as any).explainMode = on;
         document.documentElement.classList.toggle('explain', on);
         toast(on ? 'explain mode on · diagrams play themselves' : 'explain mode off');
+        if (on) setTimeout(() => (window as any).badge?.('secret'), 2300);
       }
     }
   });

@@ -21,7 +21,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 
   <footer class="mt-14 flex flex-wrap justify-between gap-2 font-mono text-[10.5px] text-faint">
     <p>© {new Date().getFullYear()} {profile.name}</p>
-    <p>end of pipeline</p>
+    <p class="flex gap-4"><button type="button" class="badges-open hover:text-accent">explored <span class="bd-count">0</span>/<span class="bd-total">10</span> ✦</button><span>end of pipeline</span></p>
   </footer>
 </section>
 

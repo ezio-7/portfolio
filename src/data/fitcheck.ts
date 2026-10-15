@@ -1,0 +1,76 @@
+// Skills the fit check recognises in a job description.
+// `have` = evidenced on this site; `find` = pattern used to highlight the evidence (defaults to the name).
+export type FitSkill = { name: string; jd: string; have: boolean; find?: string; flags?: string };
+
+export const fitSkills: FitSkill[] = [
+  // languages
+  { name: 'Python', jd: '\\bpython\\b', have: true },
+  { name: 'Java', jd: '\\bjava\\b(?!script)', have: true },
+  { name: 'SQL', jd: '\\bsql\\b', have: true },
+  { name: 'JavaScript', jd: '\\bjavascript\\b|\\bjs\\b', have: true },
+  { name: 'TypeScript', jd: '\\btypescript\\b', have: true },
+  { name: 'C++', jd: 'c\\+\\+', have: true, find: 'c\\+\\+' },
+  { name: 'Go', jd: '\\bgolang\\b|\\bGo\\b(?=[\\s,/).]|$)', have: false, flags: '' },
+  { name: 'Kotlin', jd: '\\bkotlin\\b', have: false },
+  { name: 'Scala', jd: '\\bscala\\b', have: false },
+  { name: 'C#', jd: 'c#', have: false },
+  { name: '.NET', jd: '\\.net\\b', have: false },
+  { name: 'Rust', jd: '\\brust\\b', have: false },
+  { name: 'Ruby', jd: '\\bruby\\b|\\brails\\b', have: false },
+  { name: 'PHP', jd: '\\bphp\\b', have: false },
+  // frameworks
+  { name: 'Spring Boot', jd: '\\bspring\\b', have: true, find: 'spring' },
+  { name: 'Hibernate / JPA', jd: '\\bhibernate\\b|\\bjpa\\b', have: true, find: 'hibernate|jpa' },
+  { name: 'FastAPI', jd: '\\bfastapi\\b', have: true },
+  { name: 'Flask', jd: '\\bflask\\b', have: true },
+  { name: 'Django', jd: '\\bdjango\\b', have: false },
+  { name: 'SQLAlchemy', jd: '\\bsqlalchemy\\b', have: true },
+  { name: 'Pandas', jd: '\\bpandas\\b', have: true },
+  { name: 'Node.js', jd: '\\bnode(\\.?js)?\\b', have: true, find: 'node\\.?js' },
+  { name: 'NestJS', jd: '\\bnest\\.?js\\b', have: true, find: 'nestjs' },
+  { name: 'React', jd: '\\breact\\b', have: true, find: 'next\\.js|react' },
+  { name: 'Angular', jd: '\\bangular\\b', have: false },
+  { name: 'Vue', jd: '\\bvue\\b', have: false },
+  { name: 'GraphQL', jd: '\\bgraphql\\b', have: false },
+  { name: 'gRPC', jd: '\\bgrpc\\b', have: false },
+  // data stores
+  { name: 'MySQL', jd: '\\bmysql\\b', have: true },
+  { name: 'PostgreSQL', jd: 'postgres', have: true, find: 'postgresql|postgres' },
+  { name: 'MongoDB', jd: '\\bmongo(db)?\\b', have: true, find: 'mongodb' },
+  { name: 'Redis', jd: '\\bredis\\b', have: true },
+  { name: 'Liquibase', jd: '\\bliquibase\\b|\\bflyway\\b', have: true, find: 'liquibase' },
+  { name: 'Elasticsearch', jd: 'elastic\\s?search|\\bopensearch\\b', have: false },
+  { name: 'Cassandra', jd: '\\bcassandra\\b', have: false },
+  { name: 'DynamoDB', jd: '\\bdynamo(db)?\\b', have: false },
+  { name: 'Oracle', jd: '\\boracle\\b', have: false },
+  { name: 'Snowflake', jd: '\\bsnowflake\\b', have: false },
+  // messaging / data
+  { name: 'RabbitMQ', jd: '\\brabbitmq\\b|\\bamqp\\b', have: true, find: 'rabbitmq' },
+  { name: 'Kafka', jd: '\\bkafka\\b', have: false },
+  { name: 'Spark', jd: '\\bspark\\b|pyspark', have: false },
+  { name: 'Airflow', jd: '\\bairflow\\b', have: false },
+  { name: 'ETL', jd: '\\betl\\b|\\belt\\b|data pipelines?', have: true, find: 'etl|pipeline' },
+  // cloud / infra
+  { name: 'AWS', jd: '\\baws\\b|amazon web services', have: true },
+  { name: 'Azure', jd: '\\bazure\\b', have: true },
+  { name: 'GCP', jd: '\\bgcp\\b|google cloud', have: false },
+  { name: 'Kubernetes', jd: '\\bkubernetes\\b|\\bk8s\\b|\\beks\\b|\\baks\\b|\\bgke\\b', have: true },
+  { name: 'Docker', jd: '\\bdocker\\b|containeri[sz]', have: true },
+  { name: 'Helm', jd: '\\bhelm\\b', have: true },
+  { name: 'Terraform', jd: '\\bterraform\\b|infrastructure as code|\\biac\\b', have: false },
+  { name: 'CI/CD', jd: 'ci\\s?/\\s?cd|continuous (integration|delivery|deployment)|\\bjenkins\\b|github actions', have: true, find: 'ci/cd|azure devops' },
+  { name: 'Observability', jd: 'observability|monitoring|\\bsplunk\\b|\\bgrafana\\b|prometheus|datadog', have: true, find: 'splunk|grafana' },
+  { name: 'Serverless', jd: '\\blambda\\b|serverless|azure functions', have: false },
+  // practices
+  { name: 'Microservices', jd: 'micro-?services?', have: true, find: 'microservices' },
+  { name: 'REST APIs', jd: '\\brest(ful)?\\b|\\bapis?\\b', have: true, find: 'rest apis|api' },
+  { name: 'Distributed systems', jd: 'distributed systems?', have: true, find: 'microservices|parallel|pods' },
+  { name: 'System design', jd: 'system design|architect(ure|ing)|scalab', have: true, find: 'design|architecture' },
+  { name: 'Performance tuning', jd: 'performance|optimi[sz]|latency|query tuning', have: true, find: '220×|faster|tuning' },
+  { name: 'Concurrency', jd: 'multi-?thread|concurren|parallel', have: true, find: 'multithread|parallel' },
+  { name: 'Security / auth', jd: 'oauth|oidc|\\bsso\\b|\\brbac\\b|authentication|authori[sz]ation', have: true, find: 'sso|rbac|oauth|authentication' },
+  { name: 'DSA', jd: 'data structures|algorithms', have: true, find: 'codechef|codeforces' },
+  { name: 'Healthcare data', jd: 'healthcare|hl7|fhir|hipaa|clinical|claims', have: true, find: 'health|clinical|claims' },
+];
+
+export const myYears = 2; // full-time since Jul 2024
