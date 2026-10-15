@@ -1,6 +1,5 @@
 ---
 import { profile } from '../data/profile';
-import Simulator from './Simulator.astro';
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const h = profile.hiring;
 const snapshot = [h.target, h.experience, h.location, h.notice && `Notice: ${h.notice}`].filter(Boolean);
@@ -57,7 +56,6 @@ const snapshot = [h.target, h.experience, h.location, h.notice && `Notice: ${h.n
     </button>
   </div>
 
-  <Simulator />
 </section>
 
 <style>

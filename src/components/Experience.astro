@@ -1,6 +1,6 @@
 ---
 import SectionHead from './SectionHead.astro';
-import PlatformPipeline from './PlatformPipeline.astro';
+import Simulator from './Simulator.astro';
 import { experience } from '../data/experience';
 ---
 
@@ -29,7 +29,7 @@ import { experience } from '../data/experience';
 
           {r.context && <p class="mt-1 text-[13px] text-muted">{r.context}</p>}
 
-          {r.platform && <PlatformPipeline />}
+          {r.platform && <Simulator />}
 
           {r.blocks && (
             <div class="space-y-1.5">
